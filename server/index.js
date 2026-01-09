@@ -142,3 +142,34 @@ app.get("/validar/:telefono", (req, res) => {
 app.listen(process.env.PORT, () => {
   console.log(`Servidor corriendo en puerto ${process.env.PORT}`);
 });
+/*=====================================================
+                ver usuarios
+  =====================================================*/
+// Todos los usuarios
+app.get("/usuarios", (req, res) => {
+  const sql = "SELECT * FROM usuarios";
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error al obtener usuarios:", err);
+      return res.status(500).json({ error: "Error en el servidor" });
+    }
+    res.json(results);
+  });
+});
+//USUARIOS POR ID 
+app.get("/usuarios/:id", (req, res) => {
+  const { id } = req.params;
+
+  const sql = "SELECT * FROM usuarios WHERE id = ?";
+
+  db.query(sql, [id], (err, results) => {
+    if (err) return res.status(500).json(err);
+
+    if (results.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    res.json(results[0]);
+  });
+});
