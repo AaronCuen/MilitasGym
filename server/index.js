@@ -15,18 +15,16 @@ app.use(express.json());
 app.post("/recepcionistas", async (req, res) => {
   const { nombre, usuario, password, rol } = req.body;
 
-  // Validación básica
   if (!nombre || !usuario || !password) {
     return res.status(400).json({ message: "Faltan datos" });
   }
 
   try {
-    // Cifrar contraseña
     const hash = await bcrypt.hash(password, 10);
 
     const sql = `
-      INSERT INTO recepcionistas (nombre, usuario, password, rol, estado)
-      VALUES (?, ?, ?, ?, 'activo')
+      INSERT INTO recepcionistas (nombre, usuario, password, rol)
+      VALUES (?, ?, ?, ?)
     `;
 
     db.query(
@@ -58,9 +56,11 @@ app.post("/recepcionistas", async (req, res) => {
 app.post("/login", (req, res) => {
   const { usuario, password } = req.body;
 
-  const sql = "SELECT * FROM recepcionistas WHERE usuario = ? AND estado = 'activo'";
+  const sql = "SELECT * FROM recepcionistas WHERE usuario = ?";
+
   db.query(sql, [usuario], async (err, results) => {
     if (err) return res.status(500).json(err);
+
     if (results.length === 0)
       return res.status(401).json({ message: "Usuario no encontrado" });
 
@@ -78,25 +78,56 @@ app.post("/login", (req, res) => {
   });
 });
 
+
 /* ==========================
-   REGISTRAR USUARIO
+   REGISTRAR USUARIO + INSCRIPCION
 ========================== */
 app.post("/registrar_usuario", (req, res) => {
-  const { nombre, apellido, telefono, email } = req.body;
+  const { nombre, apellido, telefono, email, membresia_id } = req.body;
 
-  const sql = `
+  const sqlUser = `
     INSERT INTO usuarios (nombre, apellido, telefono, email)
     VALUES (?, ?, ?, ?)
   `;
 
-  db.query(sql, [nombre, apellido, telefono, email], (err, result) => {
+  db.query(sqlUser, [nombre, apellido, telefono, email], (err, result) => {
     if (err) return res.status(500).json(err);
-    res.json({ message: "Usuario registrado", id: result.insertId });
+
+    const usuario_id = result.insertId;
+
+    const sqlIns = `
+      INSERT INTO inscripciones (usuario_id, membresia_id, fecha_inicio, fecha_fin)
+      VALUES (
+        ?, 
+        ?, 
+        CURDATE(),
+        CASE
+          WHEN ? = 1 THEN DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+          WHEN ? = 2 THEN DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+          WHEN ? = 3 THEN DATE_ADD(CURDATE(), INTERVAL 1 YEAR)
+        END
+      )
+    `;
+
+    db.query(
+      sqlIns,
+      [usuario_id, membresia_id, membresia_id, membresia_id, membresia_id],
+      (err2) => {
+        if (err2) return res.status(500).json(err2);
+
+        res.json({
+          message: "Usuario e inscripción creados correctamente",
+          usuario_id,
+          membresia_id,
+        });
+      }
+    );
   });
 });
 
+
 /* ==========================
-   INSCRIBIR USUARIO
+   INSCRIBIR USUARIO MANUAL
 ========================== */
 app.post("/inscripciones", (req, res) => {
   const { usuario_id, membresia_id, fecha_inicio, fecha_fin } = req.body;
@@ -112,52 +143,99 @@ app.post("/inscripciones", (req, res) => {
   });
 });
 
-/* ==========================
-   VALIDAR ACCESO (recepción)
-========================== */
-app.get("/validar/:telefono", (req, res) => {
-  const { telefono } = req.params;
 
-  const sql = `
-    SELECT u.nombre, u.apellido, i.fecha_fin
-    FROM usuarios u
-    JOIN inscripciones i ON u.id = i.usuario_id
-    WHERE u.telefono = ?
-    AND i.estado = 'activa'
-    AND i.fecha_fin >= CURDATE()
+/* ==========================
+   REGISTRAR ASISTENCIA
+========================== */
+app.post("/asistencia/:usuario_id", (req, res) => {
+  const { usuario_id } = req.params;
+
+  const sqlInscripcion = `
+    SELECT fecha_fin 
+    FROM inscripciones
+    WHERE usuario_id = ?
+    ORDER BY fecha_fin DESC
+    LIMIT 1
   `;
 
-  db.query(sql, [telefono], (err, results) => {
+  db.query(sqlInscripcion, [usuario_id], (err, results) => {
     if (err) return res.status(500).json(err);
-    if (results.length === 0)
-      return res.json({ activo: false });
 
-    res.json({
-      activo: true,
-      usuario: results[0]
+    if (results.length === 0) {
+      return res.status(400).json({
+        message: "El usuario no tiene membresía registrada ❌"
+      });
+    }
+
+    const fechaFin = new Date(results[0].fecha_fin);
+    const hoy = new Date();
+
+    hoy.setHours(0, 0, 0, 0);
+    fechaFin.setHours(0, 0, 0, 0);
+
+    if (hoy > fechaFin) {
+      return res.status(400).json({
+        message: "Membresía vencida ❌"
+      });
+    }
+
+    const sqlAsistencia = `
+      INSERT INTO asistencia (usuario_id, fecha_asistencia)
+      VALUES (?, NOW())
+    `;
+
+    db.query(sqlAsistencia, [usuario_id], (err2) => {
+      if (err2) return res.status(500).json(err2);
+
+      res.json({
+        message: "Asistencia registrada correctamente ✔️"
+      });
     });
   });
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Servidor corriendo en puerto ${process.env.PORT}`);
+
+/* ==========================
+   CONSULTAR ESTADO DE MEMBRESÍA
+========================== */
+app.get("/inscripcion/:usuario_id", (req, res) => {
+  const { usuario_id } = req.params;
+
+  const sql = `
+    SELECT *
+    FROM inscripciones
+    WHERE usuario_id = ?
+    ORDER BY fecha_fin DESC
+    LIMIT 1
+  `;
+
+  db.query(sql, [usuario_id], (err, result) => {
+    if (err) return res.status(500).json(err);
+    if (result.length === 0)
+      return res.status(404).json({ message: "Sin membresía" });
+
+    res.json(result[0]);
+  });
 });
-/*=====================================================
-                ver usuarios
-  =====================================================*/
-// Todos los usuarios
+
+
+/* ==========================
+   VER USUARIOS
+========================== */
+
+// todos
 app.get("/usuarios", (req, res) => {
   const sql = "SELECT * FROM usuarios";
 
   db.query(sql, (err, results) => {
     if (err) {
-      console.error("Error al obtener usuarios:", err);
       return res.status(500).json({ error: "Error en el servidor" });
     }
     res.json(results);
   });
 });
-//USUARIOS POR ID 
+
+// por id
 app.get("/usuarios/:id", (req, res) => {
   const { id } = req.params;
 
@@ -172,4 +250,22 @@ app.get("/usuarios/:id", (req, res) => {
 
     res.json(results[0]);
   });
+});
+
+
+/* ==========================
+   TEST SERVER
+========================== */
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "API funcionando" });
+});
+
+
+/* ==========================
+   INICIAR SERVIDOR
+========================== */
+const PORT = process.env.PORT || 4000;
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });

@@ -11,7 +11,8 @@ function RegisterUser() {
     nombre: "",
     apellido: "",
     telefono: "",
-    email: ""
+    email: "",
+    membresia_id: ""   // 1 semanal, 2 mensual, 3 anual
   });
 
   const [mensaje, setMensaje] = useState("");
@@ -32,27 +33,36 @@ function RegisterUser() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!form.membresia_id) {
+      setMensaje("Selecciona una membresía");
+      return;
+    }
+
     try {
       const res = await fetch("http://localhost:4000/registrar_usuario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          membresia_id: Number(form.membresia_id) // 👈 importante
+        })
       });
 
-      const _ = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        setMensaje("Error al registrar");
+        setMensaje(data.message || "Error al registrar");
         return;
       }
 
-      setMensaje("Usuario registrado correctamente");
+      setMensaje("Usuario e inscripción creados correctamente");
 
       setForm({
         nombre: "",
         apellido: "",
         telefono: "",
-        email: ""
+        email: "",
+        membresia_id: ""
       });
 
     } catch (error) {
@@ -76,6 +86,7 @@ function RegisterUser() {
           >
             Registrar usuarios
           </Link>
+
           <Link
             to="/buscar-usuario"
             style={{ ...styles.link, ...(isActive("/buscar-usuario") && styles.active) }}
@@ -91,7 +102,6 @@ function RegisterUser() {
           </Link>
         </nav>
 
-        {/* BOTÓN LOGOUT */}
         <div style={styles.logoutContainer}>
           <button onClick={handleLogout} style={styles.logoutButton}>
             Cerrar sesión
@@ -99,17 +109,13 @@ function RegisterUser() {
         </div>
       </aside>
 
-      {/* AREA DERECHA */}
+      {/* DERECHA */}
       <div style={styles.right}>
-        {/* TOPBAR */}
         <header style={styles.topbar}>
-          <span style={styles.topTitle}>
-            Registro de nuevos usuarios.
-          </span>
+          <span style={styles.topTitle}>Registro de nuevos usuarios.</span>
           <div style={styles.avatar}>H</div>
         </header>
 
-        {/* CONTENIDO (NO TOCADO) */}
         <main style={styles.content}>
           <div style={styles.card}>
             <h2 style={styles.title}>Registrar usuario</h2>
@@ -123,12 +129,6 @@ function RegisterUser() {
                 onChange={handleChange}
                 required
                 style={styles.input}
-                onFocus={(e) =>
-                  (e.target.style.borderBottom = "2px solid #a31211")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderBottom = "2px solid #d1d5db")
-                }
               />
 
               <input
@@ -139,12 +139,6 @@ function RegisterUser() {
                 onChange={handleChange}
                 required
                 style={styles.input}
-                onFocus={(e) =>
-                  (e.target.style.borderBottom = "2px solid #a31211")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderBottom = "2px solid #d1d5db")
-                }
               />
 
               <input
@@ -155,12 +149,6 @@ function RegisterUser() {
                 onChange={handleChange}
                 required
                 style={styles.input}
-                onFocus={(e) =>
-                  (e.target.style.borderBottom = "2px solid #a31211")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderBottom = "2px solid #d1d5db")
-                }
               />
 
               <input
@@ -170,13 +158,19 @@ function RegisterUser() {
                 value={form.email}
                 onChange={handleChange}
                 style={styles.input}
-                onFocus={(e) =>
-                  (e.target.style.borderBottom = "2px solid #a31211")
-                }
-                onBlur={(e) =>
-                  (e.target.style.borderBottom = "2px solid #d1d5db")
-                }
               />
+
+              <select
+                name="membresia_id"
+                value={form.membresia_id}
+                onChange={handleChange}
+                style={styles.input}
+              >
+                <option value="">Selecciona una membresía</option>
+                <option value="1">Semanal</option>
+                <option value="2">Mensual</option>
+                <option value="3">Anual</option>
+              </select>
 
               <button type="submit" style={styles.button}>
                 Registrar
@@ -210,7 +204,6 @@ const styles = {
     fontFamily: "Segoe UI, Arial, sans-serif",
     overflow: "hidden",
   },
-
   sidebar: {
     width: "260px",
     backgroundColor: "#111827",
@@ -219,7 +212,6 @@ const styles = {
     flexDirection: "column",
     boxShadow: "2px 0 10px rgba(0,0,0,0.4)",
   },
-
   logo: {
     height: "64px",
     display: "flex",
@@ -230,14 +222,12 @@ const styles = {
     borderBottom: "1px solid #1f2937",
     color: "#ffffff",
   },
-
   nav: {
     padding: "16px",
     display: "flex",
     flexDirection: "column",
     gap: "6px",
   },
-
   link: {
     textDecoration: "none",
     color: "#9ca3af",
@@ -245,18 +235,15 @@ const styles = {
     borderRadius: "6px",
     fontSize: "14px",
   },
-
   active: {
     backgroundColor: "#1f2937",
     color: "#ffffff",
   },
-
   logoutContainer: {
     marginTop: "auto",
     padding: "16px",
     borderTop: "1px solid #1f2937",
   },
-
   logoutButton: {
     width: "100%",
     padding: "12px",
@@ -267,14 +254,12 @@ const styles = {
     fontWeight: "600",
     cursor: "pointer",
   },
-
   right: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
     backgroundColor: "#f3f4f6",
   },
-
   topbar: {
     height: "64px",
     backgroundColor: "#e5e7eb",
@@ -283,15 +268,12 @@ const styles = {
     justifyContent: "space-between",
     padding: "0 24px",
     borderBottom: "1px solid #d1d5db",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
   },
-
   topTitle: {
     fontSize: "16px",
     fontWeight: "600",
     color: "#111827",
   },
-
   avatar: {
     width: "34px",
     height: "34px",
@@ -303,16 +285,13 @@ const styles = {
     justifyContent: "center",
     fontWeight: "600",
   },
-
   content: {
     flex: 1,
-    backgroundColor: "#f3f4f6",
     overflowY: "auto",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
   },
-
   card: {
     width: "100%",
     maxWidth: "480px",
@@ -321,7 +300,6 @@ const styles = {
     borderRadius: "14px",
     boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
   },
-
   title: {
     marginBottom: "20px",
     fontSize: "18px",
@@ -329,13 +307,11 @@ const styles = {
     borderBottom: "2px solid #e5e7eb",
     paddingBottom: "8px",
   },
-
   form: {
     display: "flex",
     flexDirection: "column",
     gap: "18px",
   },
-
   input: {
     width: "100%",
     padding: "10px 6px",
@@ -344,10 +320,7 @@ const styles = {
     borderBottom: "2px solid #d1d5db",
     outline: "none",
     backgroundColor: "transparent",
-    color: "#111827",
-    transition: "border-color 0.25s ease",
   },
-
   button: {
     marginTop: "8px",
     padding: "14px",
@@ -358,7 +331,6 @@ const styles = {
     fontWeight: "bold",
     cursor: "pointer",
   },
-
   message: {
     marginTop: "18px",
     textAlign: "center",
