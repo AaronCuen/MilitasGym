@@ -91,14 +91,14 @@ function RegisterUser() {
             to="/buscar-usuario"
             style={{ ...styles.link, ...(isActive("/buscar-usuario") && styles.active) }}
           >
-            Buscar usuario
+            Registrar asistencia
           </Link>
 
           <Link
             to="/usuarios"
             style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}
           >
-            Usuarios
+            Lista de usuarios
           </Link>
         </nav>
 

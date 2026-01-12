@@ -10,6 +10,63 @@ app.use(cors());
 app.use(express.json());
 
 /* ==========================
+   FILTRO USUARIOS + MEMBRESÍA
+========================== */
+app.get("/usuarios/filtrar-con-membresia", (req, res) => {
+  const { id, nombre, fecha_inicio, fecha_fin } = req.query;
+
+  let sql = `
+    SELECT 
+      u.id,
+      u.nombre,
+      u.apellido,
+      u.telefono,
+      u.email,
+      i.fecha_fin,
+      CASE 
+        WHEN i.fecha_fin IS NULL THEN 'INACTIVO'
+        WHEN i.fecha_fin >= CURDATE() THEN 'ACTIVO'
+        ELSE 'INACTIVO'
+      END AS estado
+    FROM usuarios u
+    LEFT JOIN (
+      SELECT usuario_id, MAX(fecha_fin) AS fecha_fin
+      FROM inscripciones
+      GROUP BY usuario_id
+    ) i ON u.id = i.usuario_id
+    WHERE 1=1
+  `;
+
+  const params = [];
+
+  if (id) {
+    sql += " AND u.id = ?";
+    params.push(id);
+  }
+
+  if (nombre) {
+    sql += " AND (u.nombre LIKE ? OR u.apellido LIKE ?)";
+    params.push(`%${nombre}%`, `%${nombre}%`);
+  }
+
+  if (fecha_inicio) {
+    sql += " AND i.fecha_fin >= ?";
+    params.push(fecha_inicio);
+  }
+
+  if (fecha_fin) {
+    sql += " AND i.fecha_fin <= ?";
+    params.push(fecha_fin);
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
+
+
+/* ==========================
    REGISTRAR RECEPCIONISTA
 ========================== */
 app.post("/recepcionistas", async (req, res) => {
@@ -260,6 +317,36 @@ app.get("/usuarios/filtrar", (req, res) => {
   });
 });
 
+/* ==========================
+   USUARIOS + ESTADO MEMBRESÍA
+========================== */
+app.get("/usuarios-con-membresia", (req, res) => {
+  const sql = `
+    SELECT 
+      u.id,
+      u.nombre,
+      u.apellido,
+      u.telefono,
+      u.email,
+      i.fecha_fin,
+      CASE 
+        WHEN i.fecha_fin IS NULL THEN 'INACTIVO'
+        WHEN i.fecha_fin >= CURDATE() THEN 'ACTIVO'
+        ELSE 'INACTIVO'
+      END AS estado
+    FROM usuarios u
+    LEFT JOIN (
+      SELECT usuario_id, MAX(fecha_fin) AS fecha_fin
+      FROM inscripciones
+      GROUP BY usuario_id
+    ) i ON u.id = i.usuario_id
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
 
 
 /* ==========================
@@ -292,6 +379,32 @@ app.get("/usuarios/:id", (req, res) => {
     }
 
     res.json(results[0]);
+  });
+});
+
+/* ==========================
+   PRUEBA DE FUNCION PARA ELIMINAR USUARIO
+========================== */
+app.delete("/usuarios/:id", (req, res) => {
+  const { id } = req.params;
+
+  // Primero borramos asistencias
+  const sqlAsist = "DELETE FROM asistencia WHERE usuario_id = ?";
+  const sqlIns = "DELETE FROM inscripciones WHERE usuario_id = ?";
+  const sqlUser = "DELETE FROM usuarios WHERE id = ?";
+
+  db.query(sqlAsist, [id], (err) => {
+    if (err) return res.status(500).json(err);
+
+    db.query(sqlIns, [id], (err2) => {
+      if (err2) return res.status(500).json(err2);
+
+      db.query(sqlUser, [id], (err3) => {
+        if (err3) return res.status(500).json(err3);
+
+        res.json({ message: "Usuario eliminado correctamente" });
+      });
+    });
   });
 });
 

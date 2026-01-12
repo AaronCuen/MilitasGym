@@ -10,6 +10,39 @@ function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // States acciones de la tabla 
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+  const [mostrarModal, setMostrarModal] = useState(false);
+
+  // Inicio de las funciones de las acciones de la tabla 
+  const verUsuario = async (id) => {
+  try {
+    const res = await axios.get(`http://localhost:4000/usuarios/${id}`);
+    setUsuarioSeleccionado(res.data);
+    setMostrarModal(true);
+  } catch {
+    alert("Error al obtener información del usuario");
+  }
+};
+
+const eliminarUsuario = async (id) => {
+  if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
+
+  try {
+    await axios.delete(`http://localhost:4000/usuarios/${id}`);
+    setUsuarios(usuarios.filter(u => u.id !== id));
+  } catch {
+    alert("Error al eliminar usuario");
+  }
+};
+
+const cerrarModal = () => {
+  setMostrarModal(false);
+  setUsuarioSeleccionado(null);
+};
+
+// Fin de las funciones de las acciones de la tabla 
+
   const [filtros, setFiltros] = useState({
     id: "",
     nombre: "",
@@ -43,7 +76,7 @@ function Users() {
     });
 
     // opcional: volver a cargar todos
-    axios.get("http://localhost:4000/usuarios").then((res) => {
+    axios.get("http://localhost:4000/usuarios-con-membresia").then((res) => {
       setUsuarios(res.data);
     });
   };
@@ -53,7 +86,7 @@ function Users() {
     setLoading(true);
 
     const res = await axios.get(
-      "http://localhost:4000/usuarios/filtrar",
+      "http://localhost:4000/usuarios/filtrar-con-membresia",
       { params: filtros }
     );
 
@@ -87,17 +120,15 @@ function Users() {
     navigate("/", { replace: true });
   };
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:4000/usuarios")
-      .then((res) => {
-        setUsuarios(res.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, []);
+useEffect(() => {
+  axios
+    .get("http://localhost:4000/usuarios-con-membresia")
+    .then((res) => {
+      setUsuarios(res.data);
+      setLoading(false);
+    })
+    .catch(() => setLoading(false));
+}, []);
 
   return (
     <div style={styles.app}>
@@ -122,14 +153,14 @@ function Users() {
               ...(isActive("/buscar-usuario") && styles.active),
             }}
           >
-            Buscar usuario
+            Registrar asistencia 
           </Link>
 
           <Link
             to="/usuarios"
             style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}
           >
-            Usuarios
+            Lista de usuarios 
           </Link>
         </nav>
 
@@ -158,8 +189,8 @@ function Users() {
 
             <h2 style={styles.title}>Usuarios registrados</h2>
 
-            <div>
-              <input
+            <div style={styles.FilersRow}>
+              <input style={styles.InputFilters}
                 placeholder="ID"
                 value={filtros.id}
                 onChange={(e) =>
@@ -167,7 +198,7 @@ function Users() {
                 }
               />
 
-              <input
+              <input style={styles.InputFilters}
                 placeholder="Nombre"
                 value={filtros.nombre}
                 onChange={(e) =>
@@ -175,21 +206,21 @@ function Users() {
                 }
               />
 
-              <input
+              <input style={styles.InputFilters}
                 type="date"
                 onChange={(e) =>
                   setFiltros({ ...filtros, fecha_inicio: e.target.value })
                 }
               />
 
-              <input
+              <input style={styles.InputFilters}
                 type="date"
                 onChange={(e) =>
                   setFiltros({ ...filtros, fecha_fin: e.target.value })
                 }
               />
 
-              <select
+              <select style={styles.InputFilters}
                 value={filtros.estado}
                 onChange={(e) =>
                   setFiltros({ ...filtros, estado: e.target.value })
@@ -200,8 +231,8 @@ function Users() {
                 <option value="inactivo">Inactivos</option>
               </select>
 
-              <button onClick={buscarUsuarios}>Buscar</button>
-              <button onClick={limpiarFiltros}>Limpiar</button>
+              <button style={styles.ButtonSearch} onClick={buscarUsuarios}>Buscar</button>
+              <button style={styles.ButtonClear} onClick={limpiarFiltros}>Limpiar</button>
 
             </div>
 
@@ -220,6 +251,9 @@ function Users() {
                     <th style={styles.th}>Apellido</th>
                     <th style={styles.th}>Teléfono</th>
                     <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Estado</th>
+                    <th style={styles.th}>Vence</th>
+                    <th style={{ ...styles.th, textAlign: "center" }}>Acciones</th>
                   </tr>
                 </thead>
 
@@ -237,12 +271,56 @@ function Users() {
                       <td style={styles.td}>{u.apellido}</td>
                       <td style={styles.td}>{u.telefono}</td>
                       <td style={styles.td}>{u.email}</td>
+
+                      <td style={{
+                      ...styles.td,
+                      color: u.estado === "ACTIVO" ? "#16a34a" : "#dc2626",
+                      fontWeight: "600"
+                    }}>
+                      {u.estado}
+                    </td>
+
+                    <td style={styles.td}>
+                      {u.fecha_fin
+                        ? new Date(u.fecha_fin).toLocaleDateString()
+                        : "—"}
+                    </td>
+                      
+                      {/* Esto se cambiara cuando se modifique el index.js */}
+                      <td style={{ ...styles.td, textAlign: "center" }}>
+                      <div style={styles.actions}>
+                      <button style={styles.btnView} onClick={() => verUsuario(u.id)}>Ver</button>
+                      <button style={styles.btnDelete} onClick={() => eliminarUsuario(u.id)}>Eliminar</button>
+                      </div>
+                    </td>
+                    {/*De aqui pa arriba */}
+
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
+{mostrarModal && usuarioSeleccionado && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.modal}>
+      <p><b>ID:</b> {usuarioSeleccionado.id}</p>
+      <p><b>Nombre:</b> {usuarioSeleccionado.nombre}</p>
+      <p><b>Apellido:</b> {usuarioSeleccionado.apellido}</p>
+      <p><b>Teléfono:</b> {usuarioSeleccionado.telefono}</p>
+      <p><b>Email:</b> {usuarioSeleccionado.email}</p>
+
+      <p><b>Fecha de nacimiento:</b> {usuarioSeleccionado.fecha_nacimiento || "No registrada"}</p>
+      <p><b>Género:</b> {usuarioSeleccionado.genero || "No registrado"}</p>
+      <p><b>Fecha de registro:</b> {new Date(usuarioSeleccionado.fecha_registro).toLocaleString()}</p>
+
+      <button onClick={() => setMostrarModal(false)}>Cerrar</button>
+    </div>
+  </div>
+)}
+
+
+  
         </main>
       </div>
     </div>
@@ -313,6 +391,47 @@ const styles = {
     color: "#fff",
     fontWeight: "600",
     cursor: "pointer",
+  },
+  ButtonClear: {
+  padding: "8px 14px",
+  backgroundColor: "#7f1d1d",
+  border: "none",
+  borderRadius: "6px",
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: "13px",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  },
+  ButtonSearch: {
+  padding: "8px 14px",
+  backgroundColor: "#374151",
+  border: "none",
+  borderRadius: "6px",
+  color: "#fff",
+  fontWeight: "600",
+  fontSize: "13px",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  },
+
+  InputFilters: {
+    width: "100%",
+    padding: "12px",
+    fontSize: "14px",
+    borderRadius: "8px",
+    border: "1px solid #d1d5db",
+    backgroundColor: "#f9fafb",
+    color: "#000",
+    outline: "none",
+    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)"
+  },
+  FilersRow: {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    marginBottom: "14px",
+    flexWrap: "nowrap",
   },
 
   right: {
@@ -402,6 +521,77 @@ const styles = {
     color: "#111827",
     borderBottom: "1px solid #e5e7eb",
   },
+
+  InputFilters: {
+  minWidth: "90px",
+  padding: "8px 10px",
+  fontSize: "13px",
+  borderRadius: "6px",
+  border: "1px solid #d1d5db",
+  backgroundColor: "#f9fafb",
+  color: "#000",
+  outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)",
+},
+actions: {
+  display: "flex",
+  gap: "8px",
+  justifyContent: "center",
+},
+
+btnView: {
+  padding: "6px 10px",
+  backgroundColor: "#1f2937",
+  color: "#fff",
+  border: "none",
+  borderRadius: "6px",
+  fontSize: "12px",
+  cursor: "pointer",
+},
+
+btnDelete: {
+  padding: "6px 10px",
+  backgroundColor: "#7f1d1d",
+  color: "#fff",
+  border: "none",
+  borderRadius: "6px",
+  fontSize: "12px",
+  cursor: "pointer",
+},
+modalOverlay: {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100vh",
+  background: "rgba(0,0,0,0.6)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 999,
+},
+
+modal: {
+  background: "#fff",
+  padding: "30px",
+  borderRadius: "12px",
+  width: "350px",
+  boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+  color: "#000",
+},
+
+btnClose: {
+  marginTop: "20px",
+  padding: "10px",
+  width: "100%",
+  backgroundColor: "#374151",
+  border: "none",
+  borderRadius: "6px",
+  color: "#fff",
+  fontWeight: "600",
+  cursor: "pointer",
+},
+
 };
 
 export default Users;
