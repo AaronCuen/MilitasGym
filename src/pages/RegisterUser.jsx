@@ -112,16 +112,17 @@ function RegisterUser() {
         </div>
 
         <nav style={styles.nav}>
+          <div style={styles.sectionLabel}>- USUARIOS</div>
           <Link to="/registrar" style={{ ...styles.link, ...(isActive("/registrar") && styles.active) }}>
             Registrar usuarios
           </Link>
 
           <Link to="/buscar-usuario" style={{ ...styles.link, ...(isActive("/buscar-usuario") && styles.active) }}>
-            Buscar usuario
+           Registrar asistencia 
           </Link>
 
           <Link to="/usuarios" style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}>
-            Usuarios
+            Lista de usuarios
           </Link>
         </nav>
 
@@ -251,7 +252,15 @@ const styles = {
   logoutContainer: { marginTop: "auto", padding: "16px", borderTop: "1px solid #1f2937" },
   logoutButton: { width: "100%", padding: "12px", backgroundColor: "#7f1d1d", border: "none", borderRadius: "8px", color: "#fff", fontWeight: "600", cursor: "pointer" },
   right: { flex: 1, display: "flex", flexDirection: "column", backgroundColor: "#f3f4f6" },
-  topbar: { height: "64px", backgroundColor: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", borderBottom: "1px solid #d1d5db", boxShadow: "0 8px 24px rgba(0,0,0,0.2)" },
+  topbar: {     height: "64px",
+    backgroundColor: "#e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 24px",
+    borderBottom: "1px solid #d1d5db",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)"},
   topTitle: { fontSize: "16px", fontWeight: "600", color: "#111827" },
   avatar: { width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "#a31211", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600" },
   content: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center" },
@@ -262,7 +271,16 @@ const styles = {
   preview: { width: "120px", height: "120px", objectFit: "cover", borderRadius: "8px", border: "2px solid #a31211", alignSelf: "center" },
   button: { padding: "14px", borderRadius: "25px", border: "none", background: "linear-gradient(to right, #580c0c, #6e0101)", color: "#fff", fontWeight: "bold", cursor: "pointer" },
   photoButton: { padding: "14px", borderRadius: "25px", border: "none", background: "#1f2937", color: "#fff", fontWeight: "bold", cursor: "pointer" },
-  message: { marginTop: "18px", textAlign: "center", fontWeight: "500" }
+  message: { marginTop: "18px", textAlign: "center", fontWeight: "500" },
+  sectionLabel: {
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "1px",
+  color: "#94a3b8",
+  marginTop: "20px",
+  marginBottom: "10px",
+  paddingLeft: "10px",
+},
 };
 
 export default RegisterUser;

@@ -22,6 +22,7 @@ function Home() {
 
         {/* LINKS */}
         <nav style={styles.nav}>
+        <div style={styles.sectionLabel}>- USUARIOS</div>
           <Link
             to="/registrar"
             style={{
@@ -39,7 +40,7 @@ function Home() {
               ...(isActive("/buscar-usuario") && styles.active),
             }}
           >
-            Buscar usuario
+            Registrar asistencia
           </Link>
 
           <Link
@@ -49,7 +50,7 @@ function Home() {
               ...(isActive("/usuarios") && styles.active),
             }}
           >
-            Usuarios
+            Lista de usuarios
           </Link>
         </nav>
 
@@ -129,6 +130,15 @@ const styles = {
     fontSize: "14px",
     transition: "all 0.2s ease",
   },
+  sectionLabel: {
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "1px",
+  color: "#94a3b8",
+  marginTop: "20px",
+  marginBottom: "10px",
+  paddingLeft: "10px",
+},
 
   active: {
     backgroundColor: "#1f2937",
@@ -163,14 +173,15 @@ const styles = {
 
   /* TOPBAR */
   topbar: {
-    height: "64px",
+      height: "64px",
     backgroundColor: "#e5e7eb",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "0 24px",
     borderBottom: "1px solid #d1d5db",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)",
   },
 
   topTitle: {

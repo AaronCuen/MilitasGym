@@ -75,6 +75,8 @@ function BuscarUsuario() {
         </div>
 
         <nav style={styles.nav}>
+        <div style={styles.sectionLabel}>- USUARIOS</div>
+
           <Link to="/registrar" style={{ ...styles.link, ...(isActive("/registrar") && styles.active) }}>
             Registrar usuarios
           </Link>
@@ -170,7 +172,15 @@ const styles = {
   logoutContainer: { padding: "16px", borderTop: "1px solid #1f2937" },
   logoutBtn: { width: "100%", padding: "12px", backgroundColor: "#7f1d1d", border: "none", borderRadius: "8px", color: "#fff", fontWeight: "600", cursor: "pointer" },
   right: { flex: 1, display: "flex", flexDirection: "column", backgroundColor: "#f3f4f6" },
-  topbar: { height: "64px", backgroundColor: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", borderBottom: "1px solid #d1d5db", boxShadow: "0 8px 24px rgba(0,0,0,0.2)" },
+  topbar: {     height: "64px",
+    backgroundColor: "#e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 24px",
+    borderBottom: "1px solid #d1d5db",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)"},
   topTitle: { fontSize: "16px", fontWeight: "600", color: "#111827" },
   avatar: { width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "#a31211", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600" },
   content: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center" },
@@ -193,6 +203,15 @@ const styles = {
   resultRow: { display: "flex", justifyContent: "space-between", borderBottom: "1px solid #e5e7eb", paddingBottom: "6px" },
   label: { fontSize: "18px", color: "#6b7280", fontWeight: "500" },
   value: { fontSize: "21px", fontWeight: "600", color: "#000000" },
+  sectionLabel: {
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "1px",
+  color: "#94a3b8",
+  marginTop: "20px",
+  marginBottom: "10px",
+  paddingLeft: "10px",
+},
 };
 
 export default BuscarUsuario;

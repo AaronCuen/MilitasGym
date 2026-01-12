@@ -139,6 +139,7 @@ useEffect(() => {
         </div>
 
         <nav style={styles.nav}>
+          <div style={styles.sectionLabel}>- USUARIOS</div>
           <Link
             to="/registrar"
             style={{ ...styles.link, ...(isActive("/registrar") && styles.active) }}
@@ -591,6 +592,16 @@ btnClose: {
   fontWeight: "600",
   cursor: "pointer",
 },
+  sectionLabel: {
+  fontSize: "11px",
+  fontWeight: "700",
+  letterSpacing: "1px",
+  color: "#94a3b8",
+  marginTop: "20px",
+  marginBottom: "10px",
+  paddingLeft: "10px",
+},
+
 
 };
 
