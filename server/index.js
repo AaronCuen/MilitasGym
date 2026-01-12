@@ -133,54 +133,79 @@ app.post("/login", (req, res) => {
       rol: recep.rol
     });
   });
-});
+}); 
 
 
 /* ==========================
-   REGISTRAR USUARIO + INSCRIPCION
+   REGISTRAR USUARIO + INSCRIPCIÓN
 ========================== */
 app.post("/registrar_usuario", (req, res) => {
-  const { nombre, apellido, telefono, email, membresia_id } = req.body;
+  const {
+    nombre,
+    apellido,
+    telefono,
+    email,
+    membresia_id,
+    foto
+  } = req.body;
+
+  // Validación
+  if (!nombre || !apellido || !telefono || !membresia_id) {
+    return res.status(400).json({ message: "Faltan datos obligatorios" });
+  }
 
   const sqlUser = `
-    INSERT INTO usuarios (nombre, apellido, telefono, email)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO usuarios (nombre, apellido, telefono, email, foto)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
-  db.query(sqlUser, [nombre, apellido, telefono, email], (err, result) => {
-    if (err) return res.status(500).json(err);
+  db.query(
+    sqlUser,
+    [
+      nombre,
+      apellido,
+      telefono,
+      email || null,
+      foto || null
+    ],
+    (err, result) => {
+      if (err) return res.status(500).json(err);
 
-    const usuario_id = result.insertId;
+      const usuario_id = result.insertId;
 
-    const sqlIns = `
-      INSERT INTO inscripciones (usuario_id, membresia_id, fecha_inicio, fecha_fin)
-      VALUES (
-        ?, 
-        ?, 
-        CURDATE(),
-        CASE
-          WHEN ? = 1 THEN DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-          WHEN ? = 2 THEN DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
-          WHEN ? = 3 THEN DATE_ADD(CURDATE(), INTERVAL 1 YEAR)
-        END
-      )
-    `;
+      const sqlIns = `
+        INSERT INTO inscripciones (usuario_id, membresia_id, fecha_inicio, fecha_fin)
+        VALUES (
+          ?, 
+          ?, 
+          CURDATE(),
+          CASE
+            WHEN ? = 1 THEN DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+            WHEN ? = 2 THEN DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+            WHEN ? = 3 THEN DATE_ADD(CURDATE(), INTERVAL 1 YEAR)
+            ELSE DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+          END
+        )
+      `;
 
-    db.query(
-      sqlIns,
-      [usuario_id, membresia_id, membresia_id, membresia_id, membresia_id],
-      (err2) => {
-        if (err2) return res.status(500).json(err2);
+      db.query(
+        sqlIns,
+        [usuario_id, membresia_id, membresia_id, membresia_id, membresia_id],
+        (err2) => {
+          if (err2) return res.status(500).json(err2);
 
-        res.json({
-          message: "Usuario e inscripción creados correctamente",
-          usuario_id,
-          membresia_id,
-        });
-      }
-    );
-  });
+          res.json({
+            message: "Usuario e inscripción creados correctamente",
+            usuario_id,
+            membresia_id,
+            foto
+          });
+        }
+      );
+    }
+  );
 });
+
 
 
 /* ==========================
