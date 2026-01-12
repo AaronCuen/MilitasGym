@@ -10,6 +10,78 @@ function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [filtros, setFiltros] = useState({
+    id: "",
+    nombre: "",
+    fecha_inicio: "",
+    fecha_fin: "",
+    estado: "todos", // activo | inactivo | todos
+  });
+
+  const obtenerEstado = async (usuario_id) => {
+    try {
+      const res = await axios.get(
+        `http://localhost:4000/inscripcion/${usuario_id}`
+      );
+
+      const hoy = new Date();
+      const fechaFin = new Date(res.data.fecha_fin);
+
+      return fechaFin >= hoy;
+    } catch {
+      return false; // sin membresía = inactivo
+    }
+  };
+
+  const limpiarFiltros = () => {
+    setFiltros({
+      id: "",
+      nombre: "",
+      fecha_inicio: "",
+      fecha_fin: "",
+      estado: "todos",
+    });
+
+    // opcional: volver a cargar todos
+    axios.get("http://localhost:4000/usuarios").then((res) => {
+      setUsuarios(res.data);
+    });
+  };
+
+
+  const buscarUsuarios = async () => {
+    setLoading(true);
+
+    const res = await axios.get(
+      "http://localhost:4000/usuarios/filtrar",
+      { params: filtros }
+    );
+
+    let data = res.data;
+
+    if (filtros.estado !== "todos") {
+      const filtrados = [];
+
+      for (const u of data) {
+        const activo = await obtenerEstado(u.id);
+
+        if (
+          (filtros.estado === "activo" && activo) ||
+          (filtros.estado === "inactivo" && !activo)
+        ) {
+          filtrados.push(u);
+        }
+      }
+
+      data = filtrados;
+    }
+
+    setUsuarios(data);
+    setLoading(false);
+  };
+
+
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/", { replace: true });
@@ -82,7 +154,58 @@ function Users() {
         {/* CONTENIDO */}
         <main style={styles.content}>
           <div style={styles.card}>
+
+
             <h2 style={styles.title}>Usuarios registrados</h2>
+
+            <div>
+              <input
+                placeholder="ID"
+                value={filtros.id}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, id: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Nombre"
+                value={filtros.nombre}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, nombre: e.target.value })
+                }
+              />
+
+              <input
+                type="date"
+                onChange={(e) =>
+                  setFiltros({ ...filtros, fecha_inicio: e.target.value })
+                }
+              />
+
+              <input
+                type="date"
+                onChange={(e) =>
+                  setFiltros({ ...filtros, fecha_fin: e.target.value })
+                }
+              />
+
+              <select
+                value={filtros.estado}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, estado: e.target.value })
+                }
+              >
+                <option value="todos">Todos</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+              </select>
+
+              <button onClick={buscarUsuarios}>Buscar</button>
+              <button onClick={limpiarFiltros}>Limpiar</button>
+
+            </div>
+
+
 
             {loading ? (
               <p>Cargando usuarios...</p>
@@ -160,7 +283,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
-    flex: 1, // 🔥 empuja el logout hacia abajo
+    flex: 1,
   },
 
   link: {
@@ -184,11 +307,10 @@ const styles = {
   logoutBtn: {
     width: "100%",
     padding: "12px",
-    borderRadius: "6px",
+    backgroundColor: "#7f1d1d",
     border: "none",
-    backgroundColor: "#a31211",
+    borderRadius: "8px",
     color: "#fff",
-    fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
   },
@@ -208,7 +330,8 @@ const styles = {
     justifyContent: "space-between",
     padding: "0 24px",
     borderBottom: "1px solid #d1d5db",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)",
   },
 
   topTitle: {
@@ -244,7 +367,7 @@ const styles = {
     backgroundColor: "#ffffff",
     padding: "28px",
     borderRadius: "14px",
-    boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+    boxShadow: "none",
     marginTop: "10px",
   },
 
@@ -254,6 +377,7 @@ const styles = {
     fontWeight: "600",
     borderBottom: "2px solid #e5e7eb",
     paddingBottom: "8px",
+    color: "black",
   },
 
   table: {
@@ -262,10 +386,11 @@ const styles = {
     fontSize: "14px",
     borderRadius: "12px",
     overflow: "hidden",
+    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)"
   },
 
   th: {
-    backgroundColor: "#a31211",
+    background: "linear-gradient(to right, #580c0c, #6e0101)",
     color: "#ffffff",
     padding: "14px",
     textAlign: "left",

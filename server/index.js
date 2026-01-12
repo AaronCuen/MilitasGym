@@ -220,6 +220,49 @@ app.get("/inscripcion/:usuario_id", (req, res) => {
 
 
 /* ==========================
+   USUARIOS FILTRADOS
+========================== */
+app.get("/usuarios/filtrar", (req, res) => {
+  const { id, nombre, fecha_inicio, fecha_fin } = req.query;
+
+  let sql = `
+    SELECT DISTINCT u.*
+    FROM usuarios u
+    LEFT JOIN inscripciones i ON u.id = i.usuario_id
+    WHERE 1=1
+  `;
+
+  const params = [];
+
+  if (id) {
+    sql += " AND u.id = ?";
+    params.push(id);
+  }
+
+  if (nombre) {
+    sql += " AND (u.nombre LIKE ? OR u.apellido LIKE ?)";
+    params.push(`%${nombre}%`, `%${nombre}%`);
+  }
+
+  if (fecha_inicio) {
+    sql += " AND i.fecha_inicio >= ?";
+    params.push(fecha_inicio);
+  }
+
+  if (fecha_fin) {
+    sql += " AND i.fecha_fin <= ?";
+    params.push(fecha_fin);
+  }
+
+  db.query(sql, params, (err, results) => {
+    if (err) return res.status(500).json(err);
+    res.json(results);
+  });
+});
+
+
+
+/* ==========================
    VER USUARIOS
 ========================== */
 

@@ -197,69 +197,25 @@ function RegisterUser() {
 }
 
 const styles = {
-  app: {
-    display: "flex",
-    width: "100vw",
-    height: "100vh",
-    fontFamily: "Segoe UI, Arial, sans-serif",
-    overflow: "hidden",
-  },
-  sidebar: {
-    width: "260px",
-    backgroundColor: "#111827",
-    color: "#d1d5db",
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: "2px 0 10px rgba(0,0,0,0.4)",
-  },
-  logo: {
-    height: "64px",
-    display: "flex",
-    alignItems: "center",
-    paddingLeft: "20px",
-    fontSize: "18px",
-    fontWeight: "600",
-    borderBottom: "1px solid #1f2937",
-    color: "#ffffff",
-  },
-  nav: {
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  link: {
-    textDecoration: "none",
-    color: "#9ca3af",
-    padding: "12px 14px",
-    borderRadius: "6px",
-    fontSize: "14px",
-  },
-  active: {
-    backgroundColor: "#1f2937",
-    color: "#ffffff",
-  },
-  logoutContainer: {
-    marginTop: "auto",
-    padding: "16px",
-    borderTop: "1px solid #1f2937",
-  },
-  logoutButton: {
-    width: "100%",
-    padding: "12px",
-    backgroundColor: "#7f1d1d",
-    border: "none",
-    borderRadius: "8px",
-    color: "#fff",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-  right: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    backgroundColor: "#f3f4f6",
-  },
+  app: { display: "flex", width: "100vw", height: "100vh", fontFamily: "Segoe UI, Arial, sans-serif", overflow: "hidden" },
+
+  sidebar: { width: "260px", backgroundColor: "#111827", color: "#d1d5db", display: "flex", flexDirection: "column", boxShadow: "2px 0 10px rgba(0,0,0,0.4)" },
+
+  logo: { height: "64px", display: "flex", alignItems: "center", paddingLeft: "20px", fontSize: "18px", fontWeight: "600", borderBottom: "1px solid #1f2937", color: "#ffffff" },
+
+  nav: { padding: "16px", display: "flex", flexDirection: "column", gap: "6px" },
+
+  link: { textDecoration: "none", color: "#9ca3af", padding: "12px 14px", borderRadius: "6px", fontSize: "14px" },
+
+  active: { backgroundColor: "#1f2937", color: "#ffffff" },
+
+  logoutContainer: { marginTop: "auto", padding: "16px", borderTop: "1px solid #1f2937" },
+
+  logoutButton: { width: "100%", padding: "12px", backgroundColor: "#7f1d1d", border: "none", borderRadius: "8px", color: "#fff", fontWeight: "600", cursor: "pointer" },
+
+  right: { flex: 1, display: "flex", flexDirection: "column", backgroundColor: "#f3f4f6" },
+
+  // 🔴 MISMA SOMBRA QUE LA BARRA DE "BUSCAR USUARIOS"
   topbar: {
     height: "64px",
     backgroundColor: "#e5e7eb",
@@ -268,74 +224,43 @@ const styles = {
     justifyContent: "space-between",
     padding: "0 24px",
     borderBottom: "1px solid #d1d5db",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.2)"
   },
-  topTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#111827",
-  },
-  avatar: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "50%",
-    backgroundColor: "#a31211",
-    color: "#ffffff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: "600",
-  },
-  content: {
-    flex: 1,
-    overflowY: "auto",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+
+  topTitle: { fontSize: "16px", fontWeight: "600", color: "#111827" },
+
+  avatar: { width: "34px", height: "34px", borderRadius: "50%", backgroundColor: "#a31211", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "600" },
+
+  content: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center" },
+
   card: {
     width: "100%",
     maxWidth: "480px",
     backgroundColor: "#ffffff",
     padding: "28px",
     borderRadius: "14px",
-    boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
+    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)"
   },
-  title: {
-    marginBottom: "20px",
-    fontSize: "18px",
-    fontWeight: "600",
-    borderBottom: "2px solid #e5e7eb",
-    paddingBottom: "8px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-  },
+
+  title: { marginBottom: "20px", fontSize: "18px", fontWeight: "600", borderBottom: "2px solid #e5e7eb", paddingBottom: "8px", color: "#000" },
+
+  form: { display: "flex", flexDirection: "column", gap: "18px" },
+
   input: {
     width: "100%",
-    padding: "10px 6px",
+    padding: "12px",
     fontSize: "14px",
-    border: "none",
-    borderBottom: "2px solid #d1d5db",
+    borderRadius: "8px",
+    border: "1px solid #d1d5db",
+    backgroundColor: "#f9fafb",
+    color: "#000",
     outline: "none",
-    backgroundColor: "transparent",
+    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)"
   },
-  button: {
-    marginTop: "8px",
-    padding: "14px",
-    borderRadius: "25px",
-    border: "none",
-    background: "linear-gradient(to right, #580c0c, #6e0101)",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer",
-  },
-  message: {
-    marginTop: "18px",
-    textAlign: "center",
-    fontWeight: "500",
-  },
+
+  button: { marginTop: "8px", padding: "14px", borderRadius: "25px", border: "none", background: "linear-gradient(to right, #580c0c, #6e0101)", color: "#fff", fontWeight: "bold", cursor: "pointer" },
+
+  message: { marginTop: "18px", textAlign: "center", fontWeight: "500" }
 };
 
 export default RegisterUser;
