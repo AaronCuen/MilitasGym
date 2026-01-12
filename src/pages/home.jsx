@@ -17,7 +17,7 @@ function Home() {
       {/* SIDEBAR */}
       <aside style={styles.sidebar}>
         <div style={styles.logo}>
-          Mlitas<span style={{ color: "#a31211" }}>GYM</span>
+          Militas<span style={{ color: "#a31211" }}>GYM</span>
         </div>
 
         {/* LINKS */}
