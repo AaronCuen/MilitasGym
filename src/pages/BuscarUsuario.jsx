@@ -10,8 +10,9 @@ function BuscarUsuario() {
   const [usuario, setUsuario] = useState(null);
   const [mensaje, setMensaje] = useState("");
 
-    const rol = localStorage.getItem("rol");
-    const isAdmin = rol === "admin";
+  const user = JSON.parse(localStorage.getItem("user"));
+  const rol = localStorage.getItem("rol");
+  const isAdmin = rol === "admin";
 
   const handleLogout = () => {
     localStorage.clear();
@@ -26,7 +27,20 @@ function BuscarUsuario() {
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/usuarios/${id}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/");
+        return;
+      }
+
+      // 🔍 1. Buscar usuario
+      const res = await fetch(`http://localhost:4000/usuarios/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -37,21 +51,37 @@ function BuscarUsuario() {
 
       setUsuario(data);
 
-      const insRes = await fetch(`http://localhost:4000/inscripcion/${id}`);
+      // 📄 2. Obtener inscripción
+      const insRes = await fetch(`http://localhost:4000/inscripcion/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
       const insData = await insRes.json();
 
       let estado = "Sin membresía";
 
-      if (insRes.ok && insData && insData.fecha_fin) {
+      if (insRes.ok && insData?.fecha_fin) {
         const hoy = new Date();
         const fechaFin = new Date(insData.fecha_fin);
         estado = fechaFin >= hoy ? "ACTIVA" : "VENCIDA";
-      } else if (insData && insData.message === "Sin membresía") {
-        estado = "Sin membresía";
       }
 
+      // ✅ 3. Registrar asistencia SOLO si está activa
       if (estado === "ACTIVA") {
-        const asisRes = await fetch(`http://localhost:4000/asistencia/${id}`, { method: "POST" });
+        const asisRes = await fetch(
+          `http://localhost:4000/asistencia/${id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
+
         const asisData = await asisRes.json();
 
         if (!asisRes.ok) {
@@ -59,10 +89,13 @@ function BuscarUsuario() {
           return;
         }
 
-        setMensaje(`Estado de membresía: ${estado}. ${asisData.message || "Asistencia registrada"}`);
+        setMensaje(
+          `Estado de membresía: ${estado}. ${asisData.message || "Asistencia registrada"}`
+        );
       } else {
         setMensaje(`Estado de membresía: ${estado}`);
       }
+
     } catch (error) {
       console.error(error);
       setMensaje("Error de servidor");
@@ -91,17 +124,17 @@ function BuscarUsuario() {
           <Link to="/usuarios" style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}>
             Lista de usuarios
           </Link>
-              {isAdmin && (
-                      <Link
-                        to="/registrar-recepcionista"
-                        style={{
-                          ...styles.link,
-                          ...(isActive("/registrar-recepcionista") && styles.active),
-                        }}
-                      >
-                        Registrar recepcionista
-                      </Link>
-          )}
+          {isAdmin && (
+            <Link
+              to="/registrar-recepcionista"
+              style={{
+                ...styles.link,
+                ...(isActive("/registrar-recepcionista") && styles.active),
+              }}
+            >
+              Registrar recepcionista
+            </Link>
+)}
         </nav>
 
         <div style={styles.logoutContainer}>

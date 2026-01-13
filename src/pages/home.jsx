@@ -7,6 +7,7 @@ function Home() {
 
     const rol = localStorage.getItem("rol");
     const isAdmin = rol === "admin";
+    const user = JSON.parse(localStorage.getItem("user"));
 
   const isActive = (path) => location.pathname === path;
 
@@ -57,16 +58,16 @@ function Home() {
             Lista de usuarios
           </Link>
 
-          {isAdmin && (
-            <Link
-              to="/registrar-recepcionista"
-              style={{
-                ...styles.link,
-                ...(isActive("/registrar-recepcionista") && styles.active),
-              }}
-            >
-              Registrar recepcionista
-            </Link>
+{isAdmin && (
+  <Link
+    to="/registrar-recepcionista"
+    style={{
+      ...styles.link,
+      ...(isActive("/registrar-recepcionista") && styles.active),
+    }}
+  >
+    Registrar recepcionista
+  </Link>
 )}
           
         </nav>

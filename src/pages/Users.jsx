@@ -12,15 +12,27 @@ function Users() {
 
     const rol = localStorage.getItem("rol");
     const isAdmin = rol === "admin";
+    const user = JSON.parse(localStorage.getItem("user"));
+
+const authHeaders = () => {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token");
+  return {
+    Authorization: `Bearer ${token}`
+  };
+};
 
   // States acciones de la tabla 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
 
   // Inicio de las funciones de las acciones de la tabla 
-  const verUsuario = async (id) => {
+const verUsuario = async (id) => {
   try {
-    const res = await axios.get(`http://localhost:4000/usuarios/${id}`);
+    const res = await axios.get(
+      `http://localhost:4000/usuarios/${id}`,
+      { headers: authHeaders() }
+    );
     setUsuarioSeleccionado(res.data);
     setMostrarModal(true);
   } catch {
@@ -32,7 +44,10 @@ const eliminarUsuario = async (id) => {
   if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
   try {
-    await axios.delete(`http://localhost:4000/usuarios/${id}`);
+    await axios.delete(
+      `http://localhost:4000/usuarios/${id}`,
+      { headers: authHeaders() }
+    );
     setUsuarios(usuarios.filter(u => u.id !== id));
   } catch {
     alert("Error al eliminar usuario");
@@ -54,67 +69,73 @@ const cerrarModal = () => {
     estado: "todos", // activo | inactivo | todos
   });
 
-  const obtenerEstado = async (usuario_id) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:4000/inscripcion/${usuario_id}`
-      );
-
-      const hoy = new Date();
-      const fechaFin = new Date(res.data.fecha_fin);
-
-      return fechaFin >= hoy;
-    } catch {
-      return false; // sin membresía = inactivo
-    }
-  };
-
-  const limpiarFiltros = () => {
-    setFiltros({
-      id: "",
-      nombre: "",
-      fecha_inicio: "",
-      fecha_fin: "",
-      estado: "todos",
-    });
-
-    // opcional: volver a cargar todos
-    axios.get("http://localhost:4000/usuarios-con-membresia").then((res) => {
-      setUsuarios(res.data);
-    });
-  };
-
-
-  const buscarUsuarios = async () => {
-    setLoading(true);
-
+const obtenerEstado = async (usuario_id) => {
+  try {
     const res = await axios.get(
-      "http://localhost:4000/usuarios/filtrar-con-membresia",
-      { params: filtros }
+      `http://localhost:4000/inscripcion/${usuario_id}`,
+      { headers: authHeaders() }
     );
 
-    let data = res.data;
+    const hoy = new Date();
+    const fechaFin = new Date(res.data.fecha_fin);
 
-    if (filtros.estado !== "todos") {
-      const filtrados = [];
+    return fechaFin >= hoy;
+  } catch {
+    return false;
+  }
+};
 
-      for (const u of data) {
-        const activo = await obtenerEstado(u.id);
+const limpiarFiltros = () => {
+  setFiltros({
+    id: "",
+    nombre: "",
+    fecha_inicio: "",
+    fecha_fin: "",
+    estado: "todos",
+  });
 
-        if (
-          (filtros.estado === "activo" && activo) ||
-          (filtros.estado === "inactivo" && !activo)
-        ) {
-          filtrados.push(u);
-        }
+  axios
+    .get(
+      "http://localhost:4000/usuarios-con-membresia",
+      { headers: authHeaders() }
+    )
+    .then((res) => setUsuarios(res.data));
+};
+
+
+const buscarUsuarios = async () => {
+  setLoading(true);
+
+  const res = await axios.get(
+    "http://localhost:4000/usuarios/filtrar-con-membresia",
+    {
+      params: filtros,
+      headers: authHeaders()
+    }
+  );
+
+  let data = res.data;
+
+  if (filtros.estado !== "todos") {
+    const filtrados = [];
+
+    for (const u of data) {
+      const activo = await obtenerEstado(u.id);
+
+      if (
+        (filtros.estado === "activo" && activo) ||
+        (filtros.estado === "inactivo" && !activo)
+      ) {
+        filtrados.push(u);
       }
-
-      data = filtrados;
     }
 
-    setUsuarios(data);
-    setLoading(false);
-  };
+    data = filtrados;
+  }
+
+  setUsuarios(data);
+  setLoading(false);
+};
 
 
 
@@ -125,12 +146,18 @@ const cerrarModal = () => {
 
 useEffect(() => {
   axios
-    .get("http://localhost:4000/usuarios-con-membresia")
+    .get(
+      "http://localhost:4000/usuarios-con-membresia",
+      { headers: authHeaders() }
+    )
     .then((res) => {
       setUsuarios(res.data);
       setLoading(false);
     })
-    .catch(() => setLoading(false));
+    .catch(() => {
+      setLoading(false);
+      navigate("/");
+    });
 }, []);
 
   return (
@@ -166,17 +193,17 @@ useEffect(() => {
           >
             Lista de usuarios 
           </Link>
-              {isAdmin && (
-                      <Link
-                        to="/registrar-recepcionista"
-                        style={{
-                          ...styles.link,
-                          ...(isActive("/registrar-recepcionista") && styles.active),
-                        }}
-                      >
-                        Registrar recepcionista
-                      </Link>
-          )}
+            {isAdmin && (
+              <Link
+                to="/registrar-recepcionista"
+                style={{
+                  ...styles.link,
+                  ...(isActive("/registrar-recepcionista") && styles.active),
+                }}
+              >
+                Registrar recepcionista
+              </Link>
+            )}
         </nav>
 
         {/* 🔴 LOGOUT ABAJO */}
@@ -537,17 +564,6 @@ const styles = {
     borderBottom: "1px solid #e5e7eb",
   },
 
-  InputFilters: {
-  minWidth: "90px",
-  padding: "8px 10px",
-  fontSize: "13px",
-  borderRadius: "6px",
-  border: "1px solid #d1d5db",
-  backgroundColor: "#f9fafb",
-  color: "#000",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)",
-},
 actions: {
   display: "flex",
   gap: "8px",

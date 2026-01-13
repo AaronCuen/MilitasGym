@@ -4,6 +4,7 @@ import gymImage from "../assets/Background.png";
 import blurredback from "../assets/blurredbackground.png";
 import logo from "../assets/Logo.png";
 
+
 function Login() {
   const navigate = useNavigate();
 
@@ -41,46 +42,44 @@ function Login() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setServerError("");
+  e.preventDefault();
+  setServerError("");
 
-    if (!validate()) return;
+  if (!validate()) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await fetch("http://localhost:4000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usuario: username,
-          password: password,
-        }),
-      });
+    const res = await fetch("http://localhost:4000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        usuario: username,
+        password: password,
+      }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        setServerError(data.message || "Error al iniciar sesión");
-        return;
-      }
-
-      // ✅ Guardar sesión compatible con PrivateRoute
-      localStorage.setItem("token", data.token || "session-token");
-      localStorage.setItem("id", data.id);
-      localStorage.setItem("nombre", data.nombre);
-      localStorage.setItem("rol", data.rol);
-
-      navigate("/home", { replace: true });
-
-    } catch (error) {
-      setServerError("No se pudo conectar con el servidor");
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      setServerError(data.message || "Error al iniciar sesión");
+      return;
     }
-  };
+
+    // 🔐 Guardar JWT real
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    navigate("/home", { replace: true });
+
+  } catch (error) {
+    setServerError("No se pudo conectar con el servidor");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={styles.wrapper}>

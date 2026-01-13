@@ -6,8 +6,10 @@ function RegisterUser() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-    const rol = localStorage.getItem("rol");
-    const isAdmin = rol === "admin";
+  const user = JSON.parse(localStorage.getItem("user"));
+  const rol = user?.rol;
+  const isAdmin = rol === "admin";
+
 
   const isActive = (path) => location.pathname === path;
   const [imagen, setImagen] = useState(null);
@@ -22,90 +24,106 @@ function RegisterUser() {
 
   const [mensaje, setMensaje] = useState("");
 
-  const subirImagen = async () => {
-    if (!imagen) return null;
+// 🔼 Subir imagen a Cloudinary
+const subirImagen = async () => {
+  if (!imagen) return null;
 
-    const formData = new FormData();
-    formData.append("file", imagen);
-    formData.append("upload_preset", "ml_default");
+  const formData = new FormData();
+  formData.append("file", imagen);
+  formData.append("upload_preset", "ml_default");
 
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dqrdrnznk/image/upload",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
-
-    const data = await res.json();
-
-    if (!data.secure_url) {
-      throw new Error("No se obtuvo secure_url de Cloudinary");
+  const res = await fetch(
+    "https://api.cloudinary.com/v1_1/dqrdrnznk/image/upload",
+    {
+      method: "POST",
+      body: formData
     }
+  );
 
-    return data.secure_url;
-  };
+  const data = await res.json();
 
-  const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
-  };
+  if (!data.secure_url) {
+    throw new Error("No se obtuvo secure_url de Cloudinary");
+  }
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  return data.secure_url;
+};
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleChange = (e) => {
+  setForm({
+    ...form,
+    [e.target.name]: e.target.value
+  });
+};
 
-    if (!form.membresia_id) {
-      setMensaje("Selecciona una membresía");
+const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  navigate("/");
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!form.membresia_id) {
+    setMensaje("Selecciona una membresía");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setMensaje("Sesión expirada. Inicia sesión nuevamente");
       return;
     }
 
-    try {
-      const fotoUrl = await subirImagen();
-
-      const res = await fetch("http://localhost:4000/registrar_usuario", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          membresia_id: Number(form.membresia_id),
-          foto: fotoUrl
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMensaje(data.message || "Error al registrar");
-        return;
-      }
-
-      setMensaje("Usuario e inscripción creados correctamente");
-
-      setForm({
-        nombre: "",
-        apellido: "",
-        telefono: "",
-        email: "",
-        membresia_id: ""
-      });
-
-      setImagen(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-    } catch (error) {
-      setMensaje("Error de servidor");
+    // ✅ AQUÍ SE SOLUCIONA TODO
+    let fotoUrl = null;
+    if (imagen) {
+      fotoUrl = await subirImagen();
     }
-  };
+
+    const res = await fetch("http://localhost:4000/registrar_usuario", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ...form,
+        membresia_id: Number(form.membresia_id),
+        foto: fotoUrl
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMensaje(data.message || "Error al registrar");
+      return;
+    }
+
+    setMensaje("Usuario e inscripción creados correctamente");
+
+    // 🔄 Reset form
+    setForm({
+      nombre: "",
+      apellido: "",
+      telefono: "",
+      email: "",
+      membresia_id: ""
+    });
+
+    setImagen(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+  } catch (error) {
+    console.error("ERROR REAL:", error);
+    setMensaje("Error de servidor");
+  }
+};
 
   return (
     <div style={styles.app}>

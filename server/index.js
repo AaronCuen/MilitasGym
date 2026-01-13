@@ -1,8 +1,12 @@
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const db = require("./db");
+const verifyToken = require("./middlewares/auth");
+const requireAdmin = require('./middlewares/requireAdmin');
+const requireRole = require('./middlewares/requireRole');
 
 const app = express();
 
@@ -12,7 +16,12 @@ app.use(express.json());
 /* ==========================
    FILTRO USUARIOS + MEMBRESÍA
 ========================== */
-app.get("/usuarios/filtrar-con-membresia", (req, res) => {
+
+// PROTEGIDO 
+app.get(
+  "/usuarios/filtrar-con-membresia",
+  verifyToken,
+  (req, res) => {
   const { id, nombre, fecha_inicio, fecha_fin } = req.query;
 
   let sql = `
@@ -65,8 +74,12 @@ app.get("/usuarios/filtrar-con-membresia", (req, res) => {
   });
 });
 
-
-app.post("/recepcionistas", async (req, res) => {
+// PROTEGIDO JWT + ADMIN 
+app.post(
+  "/recepcionistas",
+  verifyToken,
+  requireAdmin,
+  async (req, res) => {
   const { nombre, usuario, password } = req.body;
 
   if (!nombre || !usuario || !password) {
@@ -110,6 +123,8 @@ app.post("/recepcionistas", async (req, res) => {
 /* ==========================
    LOGIN RECEPCIONISTA
 ========================== */
+
+// NO REQUIERE PROTECCION
 app.post("/login", (req, res) => {
   const { usuario, password } = req.body;
 
@@ -127,19 +142,40 @@ app.post("/login", (req, res) => {
     if (!ok)
       return res.status(401).json({ message: "Contraseña incorrecta" });
 
+    // 🔐 AQUÍ se crea el token
+    const token = jwt.sign(
+      {
+        id: recep.id,
+        nombre: recep.nombre,
+        rol: recep.rol
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "8h" }
+    );
+
+    // Se envía el token + datos básicos
     res.json({
-      id: recep.id,
-      nombre: recep.nombre,
-      rol: recep.rol
+      token,
+      user: {
+        id: recep.id,
+        nombre: recep.nombre,
+        rol: recep.rol
+      }
     });
   });
-}); 
+});
 
 
 /* ==========================
    REGISTRAR USUARIO + INSCRIPCIÓN
 ========================== */
-app.post("/registrar_usuario", (req, res) => {
+
+// PROTEGIDO 
+app.post(
+  "/registrar_usuario",
+  verifyToken,
+  requireRole(['admin', 'recepcionista']),
+  (req, res) => {
   const {
     nombre,
     apellido,
@@ -211,7 +247,12 @@ app.post("/registrar_usuario", (req, res) => {
 /* ==========================
    INSCRIBIR USUARIO MANUAL
 ========================== */
-app.post("/inscripciones", (req, res) => {
+// PROTEGIDO 
+app.post(
+  "/inscripciones",
+  verifyToken,
+  requireRole(['admin', 'recepcionista']),
+  (req, res) => {
   const { usuario_id, membresia_id, fecha_inicio, fecha_fin } = req.body;
 
   const sql = `
@@ -225,11 +266,15 @@ app.post("/inscripciones", (req, res) => {
   });
 });
 
-
+// PROTEGIDO
 /* ==========================
    REGISTRAR ASISTENCIA
 ========================== */
-app.post("/asistencia/:usuario_id", (req, res) => {
+app.post(
+  "/asistencia/:usuario_id",
+  verifyToken,
+  requireRole(['admin', 'recepcionista']),
+  (req, res) => {
   const { usuario_id } = req.params;
 
   const sqlInscripcion = `
@@ -280,7 +325,12 @@ app.post("/asistencia/:usuario_id", (req, res) => {
 /* ==========================
    CONSULTAR ESTADO DE MEMBRESÍA
 ========================== */
-app.get("/inscripcion/:usuario_id", (req, res) => {
+//PROTEGIDO
+app.get(
+  "/inscripcion/:usuario_id",
+  verifyToken,
+  requireRole(["admin", "recepcionista"]),
+  (req, res) => {
   const { usuario_id } = req.params;
 
   const sql = `
@@ -304,7 +354,12 @@ app.get("/inscripcion/:usuario_id", (req, res) => {
 /* ==========================
    USUARIOS FILTRADOS
 ========================== */
-app.get("/usuarios/filtrar", (req, res) => {
+//PROTEGIDO
+app.get(
+  "/usuarios/filtrar",
+  verifyToken,
+  requireRole(["admin", "recepcionista"]),
+  (req, res) => {
   const { id, nombre, fecha_inicio, fecha_fin } = req.query;
 
   let sql = `
@@ -345,7 +400,12 @@ app.get("/usuarios/filtrar", (req, res) => {
 /* ==========================
    USUARIOS + ESTADO MEMBRESÍA
 ========================== */
-app.get("/usuarios-con-membresia", (req, res) => {
+//PROTEGIDO
+app.get(
+  "/usuarios-con-membresia",
+  verifyToken,
+  requireRole(["admin", "recepcionista"]),
+  (req, res) => {
   const sql = `
     SELECT 
       u.id,
@@ -379,7 +439,11 @@ app.get("/usuarios-con-membresia", (req, res) => {
 ========================== */
 
 // todos
-app.get("/usuarios", (req, res) => {
+app.get(
+  "/usuarios",
+  verifyToken,
+  requireRole(["admin", "recepcionista"]),
+  (req, res) => {
   const sql = "SELECT * FROM usuarios";
 
   db.query(sql, (err, results) => {
@@ -391,7 +455,11 @@ app.get("/usuarios", (req, res) => {
 });
 
 // por id
-app.get("/usuarios/:id", (req, res) => {
+app.get(
+  "/usuarios/:id",
+  verifyToken,
+  requireRole(["admin", "recepcionista"]),
+  (req, res) => {
   const { id } = req.params;
 
   const sql = "SELECT * FROM usuarios WHERE id = ?";
@@ -410,7 +478,11 @@ app.get("/usuarios/:id", (req, res) => {
 /* ==========================
    PRUEBA DE FUNCION PARA ELIMINAR USUARIO
 ========================== */
-app.delete("/usuarios/:id", (req, res) => {
+app.delete(
+  "/usuarios/:id",
+  verifyToken,
+  requireRole(["admin"]),
+  (req, res) => {
   const { id } = req.params;
 
   // Primero borramos asistencias
