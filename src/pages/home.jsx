@@ -5,6 +5,9 @@ function Home() {
   const location = useLocation();
   const navigate = useNavigate();
 
+    const rol = localStorage.getItem("rol");
+    const isAdmin = rol === "admin";
+
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
@@ -14,6 +17,7 @@ function Home() {
 
   return (
     <div style={styles.app}>
+
       {/* SIDEBAR */}
       <aside style={styles.sidebar}>
         <div style={styles.logo}>
@@ -52,6 +56,19 @@ function Home() {
           >
             Lista de usuarios
           </Link>
+
+          {isAdmin && (
+            <Link
+              to="/registrar-recepcionista"
+              style={{
+                ...styles.link,
+                ...(isActive("/registrar-recepcionista") && styles.active),
+              }}
+            >
+              Registrar recepcionista
+            </Link>
+)}
+          
         </nav>
 
         {/* 🔴 LOGOUT ABAJO */}

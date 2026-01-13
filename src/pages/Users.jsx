@@ -10,6 +10,9 @@ function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
 
+    const rol = localStorage.getItem("rol");
+    const isAdmin = rol === "admin";
+
   // States acciones de la tabla 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -163,6 +166,17 @@ useEffect(() => {
           >
             Lista de usuarios 
           </Link>
+              {isAdmin && (
+                      <Link
+                        to="/registrar-recepcionista"
+                        style={{
+                          ...styles.link,
+                          ...(isActive("/registrar-recepcionista") && styles.active),
+                        }}
+                      >
+                        Registrar recepcionista
+                      </Link>
+          )}
         </nav>
 
         {/* 🔴 LOGOUT ABAJO */}

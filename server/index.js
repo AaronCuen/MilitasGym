@@ -66,11 +66,8 @@ app.get("/usuarios/filtrar-con-membresia", (req, res) => {
 });
 
 
-/* ==========================
-   REGISTRAR RECEPCIONISTA
-========================== */
 app.post("/recepcionistas", async (req, res) => {
-  const { nombre, usuario, password, rol } = req.body;
+  const { nombre, usuario, password } = req.body;
 
   if (!nombre || !usuario || !password) {
     return res.status(400).json({ message: "Faltan datos" });
@@ -81,12 +78,12 @@ app.post("/recepcionistas", async (req, res) => {
 
     const sql = `
       INSERT INTO recepcionistas (nombre, usuario, password, rol)
-      VALUES (?, ?, ?, ?)
+      VALUES (?, ?, ?, 'recepcionista')
     `;
 
     db.query(
       sql,
-      [nombre, usuario, hash, rol || "recepcionista"],
+      [nombre, usuario, hash],
       (err, result) => {
         if (err) {
           if (err.code === "ER_DUP_ENTRY") {
@@ -97,7 +94,10 @@ app.post("/recepcionistas", async (req, res) => {
 
         res.status(201).json({
           message: "Recepcionista registrado",
-          id: result.insertId
+          id: result.insertId,
+          nombre,
+          usuario,
+          rol: "recepcionista"
         });
       }
     );

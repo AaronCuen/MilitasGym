@@ -10,6 +10,9 @@ function BuscarUsuario() {
   const [usuario, setUsuario] = useState(null);
   const [mensaje, setMensaje] = useState("");
 
+    const rol = localStorage.getItem("rol");
+    const isAdmin = rol === "admin";
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/", { replace: true });
@@ -88,6 +91,17 @@ function BuscarUsuario() {
           <Link to="/usuarios" style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}>
             Lista de usuarios
           </Link>
+              {isAdmin && (
+                      <Link
+                        to="/registrar-recepcionista"
+                        style={{
+                          ...styles.link,
+                          ...(isActive("/registrar-recepcionista") && styles.active),
+                        }}
+                      >
+                        Registrar recepcionista
+                      </Link>
+          )}
         </nav>
 
         <div style={styles.logoutContainer}>

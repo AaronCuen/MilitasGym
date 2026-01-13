@@ -5,6 +5,7 @@ import RegisterUser from "./pages/RegisterUser.jsx";
 import BuscarUsuario from "./pages/BuscarUsuario.jsx";
 import Login from "./pages/Login.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
+import RegistrarRecepcionista from "./pages/RegistrarRecepcionista";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/usuarios" element={<Users />} />
         <Route path="/registrar" element={<RegisterUser />} />
         <Route path="/buscar-usuario" element={<BuscarUsuario />} />
+        <Route path="/registrar-recepcionista" element={<RegistrarRecepcionista />} />
       </Route>
     </Routes>
   );

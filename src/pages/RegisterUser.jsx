@@ -6,6 +6,9 @@ function RegisterUser() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
+    const rol = localStorage.getItem("rol");
+    const isAdmin = rol === "admin";
+
   const isActive = (path) => location.pathname === path;
   const [imagen, setImagen] = useState(null);
 
@@ -124,6 +127,17 @@ function RegisterUser() {
           <Link to="/usuarios" style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}>
             Lista de usuarios
           </Link>
+              {isAdmin && (
+                      <Link
+                        to="/registrar-recepcionista"
+                        style={{
+                          ...styles.link,
+                          ...(isActive("/registrar-recepcionista") && styles.active),
+                        }}
+                      >
+                        Registrar recepcionista
+                      </Link>
+          )}
         </nav>
 
         <div style={styles.logoutContainer}>
