@@ -343,26 +343,39 @@ useEffect(() => {
               </table>
             )}
           </div>
-{mostrarModal && usuarioSeleccionado && (
-  <div style={styles.modalOverlay}>
-    <div style={styles.modal}>
-      <p><b>ID:</b> {usuarioSeleccionado.id}</p>
-      <p><b>Nombre:</b> {usuarioSeleccionado.nombre}</p>
-      <p><b>Apellido:</b> {usuarioSeleccionado.apellido}</p>
-      <p><b>Teléfono:</b> {usuarioSeleccionado.telefono}</p>
-      <p><b>Email:</b> {usuarioSeleccionado.email}</p>
+            {mostrarModal && usuarioSeleccionado && (
+              <div style={styles.modalOverlay}>
+                <div style={styles.modal}>
+                  {usuarioSeleccionado.foto && (
+                    <div style={{ textAlign: "center", marginTop: "10px" }}>
+                      <img
+                        src={usuarioSeleccionado.foto}
+                        alt="Foto del usuario"
+                        style={{
+                          width: "170px",
+                          height: "170px",
+                          objectFit: "cover",
+                          borderRadius: "10%",
+                          border: "3px solid #a31211",
+                          boxShadow: "0px 0px 10px rgba(0,0,0,0.2)"
+                        }}
+                      />
+                    </div>
+                  )}
+                  <p><b>ID:</b> {usuarioSeleccionado.id}</p>
+                  <p><b>Nombre:</b> {usuarioSeleccionado.nombre}</p>
+                  <p><b>Apellido:</b> {usuarioSeleccionado.apellido}</p>
+                  <p><b>Teléfono:</b> {usuarioSeleccionado.telefono}</p>
+                  <p><b>Email:</b> {usuarioSeleccionado.email}</p>
 
-      <p><b>Fecha de nacimiento:</b> {usuarioSeleccionado.fecha_nacimiento || "No registrada"}</p>
-      <p><b>Género:</b> {usuarioSeleccionado.genero || "No registrado"}</p>
-      <p><b>Fecha de registro:</b> {new Date(usuarioSeleccionado.fecha_registro).toLocaleString()}</p>
+                  <p><b>Fecha de nacimiento:</b> {usuarioSeleccionado.fecha_nacimiento || "No registrada"}</p>
+                  <p><b>Género:</b> {usuarioSeleccionado.genero || "No registrado"}</p>
+                  <p><b>Fecha de registro:</b> {new Date(usuarioSeleccionado.fecha_registro).toLocaleString()}</p>
 
-      <button onClick={() => setMostrarModal(false)}>Cerrar</button>
-    </div>
-  </div>
-)}
-
-
-  
+                  <button onClick={() => setMostrarModal(false)}>Cerrar</button>
+                </div>
+              </div>
+            )}  
         </main>
       </div>
     </div>
@@ -534,7 +547,7 @@ const styles = {
 
   title: {
     marginBottom: "20px",
-    fontSize: "18px",
+    fontSize: "22px",
     fontWeight: "600",
     borderBottom: "2px solid #e5e7eb",
     paddingBottom: "8px",
@@ -604,11 +617,15 @@ modalOverlay: {
 
 modal: {
   background: "#fff",
-  padding: "30px",
-  borderRadius: "12px",
-  width: "350px",
-  boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+  padding: "40px",                 // más espacio interno
+  borderRadius: "16px",            // bordes más grandes
+  width: "700px",                  // ancho grande
+  maxWidth: "90vw",                // no se sale de pantalla
+  maxHeight: "85vh",               // alto grande
+  overflowY: "auto",               // scroll si se llena
+  boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
   color: "#000",
+  textAlign: "justify",
 },
 
 btnClose: {

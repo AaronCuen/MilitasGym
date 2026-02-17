@@ -10,6 +10,9 @@ function Home() {
     const user = JSON.parse(localStorage.getItem("user"));
 
   const isActive = (path) => location.pathname === path;
+  console.log(localStorage.getItem("rol"))
+  console.log("cabezon")
+
 
   const handleLogout = () => {
     localStorage.clear();               

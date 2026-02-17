@@ -62,6 +62,7 @@ function Login() {
     });
 
     const data = await res.json();
+    console.log("RESPUESTA DEL BACKEND:", data);
 
     if (!res.ok) {
       setServerError(data.message || "Error al iniciar sesión");
@@ -71,6 +72,7 @@ function Login() {
     // 🔐 Guardar JWT real
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("rol", data.user.rol);
 
     navigate("/home", { replace: true });
 

@@ -178,6 +178,22 @@ function BuscarUsuario() {
 
             {usuario && (
               <div style={styles.result}>
+                {usuario.foto && (
+                  <div style={{ textAlign: "center", marginTop: "10px" }}>
+                    <img
+                      src={usuario.foto}
+                      alt="Foto del usuario"
+                      style={{
+                        width: "30%",
+                        height: "30%",
+                        objectFit: "cover",
+                        borderRadius: "10px",
+                        border: "2px solid #a31211",
+                        maxHeight:"200px"
+                      }}
+                    />
+                  </div>
+                )}
                 <ResultRow label="ID" value={usuario.id} />
                 <ResultRow label="Nombre" value={usuario.nombre} />
                 <ResultRow label="Apellido" value={usuario.apellido} />
