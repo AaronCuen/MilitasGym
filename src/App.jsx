@@ -6,6 +6,7 @@ import BuscarUsuario from "./pages/BuscarUsuario.jsx";
 import Login from "./pages/Login.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import RegistrarRecepcionista from "./pages/RegistrarRecepcionista";
+import Layout from "./components/Layout";
 
 function App() {
   return (
@@ -15,11 +16,13 @@ function App() {
 
       {/* Rutas privadas */}
       <Route element={<PrivateRoute />}>
-        <Route path="/home" element={<Home />} />
-        <Route path="/usuarios" element={<Users />} />
-        <Route path="/registrar" element={<RegisterUser />} />
-        <Route path="/buscar-usuario" element={<BuscarUsuario />} />
-        <Route path="/registrar-recepcionista" element={<RegistrarRecepcionista />} />
+        <Route element={<Layout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/usuarios" element={<Users />} />
+          <Route path="/registrar" element={<RegisterUser />} />
+          <Route path="/buscar-usuario" element={<BuscarUsuario />} />
+          <Route path="/registrar-recepcionista" element={<RegistrarRecepcionista />} />
+        </Route>
       </Route>
     </Routes>
   );
