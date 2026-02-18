@@ -90,7 +90,9 @@ function RegisterUser() {
         return;
       }
 
-      setMensaje("Usuario e inscripción creados correctamente");
+      setMensaje(
+  `Usuario registrado correctamente. ID asignado: ${data.usuario_id}`
+);
 
       setForm({
         nombre: "",
