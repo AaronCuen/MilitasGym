@@ -7,6 +7,9 @@ function Users() {
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
+  const [usuarioRenovar, setUsuarioRenovar] = useState(null);
+
 
   const [filtros, setFiltros] = useState({
     id: "",
@@ -25,6 +28,36 @@ function Users() {
       Authorization: `Bearer ${token}`,
     };
   };
+
+  const confirmarRenovacion = async (membresia_id) => {
+    try {
+      await axios.post(
+        "http://localhost:4000/inscripciones/renovar",
+        {
+          usuario_id: usuarioRenovar.id,
+          membresia_id
+        },
+        { headers: authHeaders() }
+      );
+
+      alert("Membresía renovada correctamente");
+
+      setMostrarModalRenovar(false);
+      setMostrarModal(false);
+
+      // Recargar lista
+      const res = await axios.get(
+        "http://localhost:4000/usuarios-con-membresia",
+        { headers: authHeaders() }
+      );
+
+      setUsuarios(res.data);
+
+    } catch (error) {
+      alert("Error al renovar membresía");
+    }
+  };
+  
 
   const verUsuario = async (id) => {
     try {
@@ -322,6 +355,15 @@ function Users() {
                   usuarioSeleccionado.fecha_registro
                 ).toLocaleString()}
               </p>
+              <button
+                style={styles.btnRenew}
+                onClick={() => {
+                  setUsuarioRenovar(usuarioSeleccionado);
+                  setMostrarModalRenovar(true);
+                }}
+              >
+                Renovar
+              </button>
 
               <button
                 style={styles.btnClose}
@@ -332,6 +374,44 @@ function Users() {
             </div>
           </div>
         )}
+        {mostrarModalRenovar && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <h3 style={{ marginBottom: "15px" }}>
+                Selecciona duración de la renovación
+              </h3>
+
+              <button
+                style={styles.btnOption}
+                onClick={() => confirmarRenovacion(1)}
+              >
+                1 Semana (7 días)
+              </button>
+
+              <button
+                style={styles.btnOption}
+                onClick={() => confirmarRenovacion(2)}
+              >
+                1 Mes
+              </button>
+
+              <button
+                style={styles.btnOption}
+                onClick={() => confirmarRenovacion(3)}
+              >
+                1 Año
+              </button>
+
+              <button
+                style={styles.btnCancel}
+                onClick={() => setMostrarModalRenovar(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
       </main>
     </>
   );
@@ -614,6 +694,40 @@ btnClose: {
   marginBottom: "10px",
   paddingLeft: "10px",
 },
+btnRenew: {
+  backgroundColor: "#16a34a",
+  color: "white",
+  border: "none",
+  padding: "8px 14px",
+  borderRadius: "6px",
+  cursor: "pointer",
+  marginRight: "10px",
+  fontWeight: "600"
+},
+
+btnOption: {
+  backgroundColor: "#16a34a",
+  color: "white",
+  border: "none",
+  padding: "10px",
+  marginTop: "10px",
+  width: "100%",
+  borderRadius: "6px",
+  cursor: "pointer",
+  fontWeight: "600"
+},
+
+btnCancel: {
+  backgroundColor: "#6b7280",
+  color: "white",
+  border: "none",
+  padding: "10px",
+  marginTop: "10px",
+  width: "100%",
+  borderRadius: "6px",
+  cursor: "pointer"
+}
+
 
 
 };

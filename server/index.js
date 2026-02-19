@@ -266,6 +266,109 @@ app.post(
   });
 });
 
+/* ===========================
+      RENOVAR MEMBRESÏA
+   ============================ */
+    app.post(
+    "/inscripciones/renovar",
+    verifyToken,
+    requireRole(['admin', 'recepcionista']),
+    (req, res) => {
+
+      const { usuario_id, membresia_id } = req.body;
+
+      if (!usuario_id || !membresia_id) {
+        return res.status(400).json({ message: "Faltan datos" });
+      }
+
+      // 1️⃣ Obtener última inscripción
+      const sqlUltima = `
+        SELECT fecha_fin
+        FROM inscripciones
+        WHERE usuario_id = ?
+        ORDER BY fecha_fin DESC
+        LIMIT 1
+      `;
+
+      db.query(sqlUltima, [usuario_id], (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        let sqlInsert;
+
+        if (result.length > 0) {
+          // 🔵 Si tiene inscripción previa
+          sqlInsert = `
+            INSERT INTO inscripciones (usuario_id, membresia_id, fecha_inicio, fecha_fin)
+            VALUES (
+              ?,
+              ?,
+              IF(? >= CURDATE(), ?, CURDATE()),
+              CASE
+                WHEN ? = 1 THEN DATE_ADD(IF(? >= CURDATE(), ?, CURDATE()), INTERVAL 7 DAY)
+                WHEN ? = 2 THEN DATE_ADD(IF(? >= CURDATE(), ?, CURDATE()), INTERVAL 1 MONTH)
+                WHEN ? = 3 THEN DATE_ADD(IF(? >= CURDATE(), ?, CURDATE()), INTERVAL 1 YEAR)
+              END
+            )
+          `;
+
+          const fecha_fin_actual = result[0].fecha_fin;
+
+          db.query(
+            sqlInsert,
+            [
+              usuario_id,
+              membresia_id,
+              fecha_fin_actual,
+              fecha_fin_actual,
+              membresia_id,
+              fecha_fin_actual,
+              fecha_fin_actual,
+              membresia_id,
+              fecha_fin_actual,
+              fecha_fin_actual,
+              membresia_id,
+              fecha_fin_actual,
+              fecha_fin_actual
+            ],
+            (err2) => {
+              if (err2) return res.status(500).json(err2);
+
+              res.json({ message: "Membresía renovada correctamente" });
+            }
+          );
+
+        } else {
+
+          // 🔴 Si nunca ha tenido inscripción
+          sqlInsert = `
+            INSERT INTO inscripciones (usuario_id, membresia_id, fecha_inicio, fecha_fin)
+            VALUES (
+              ?,
+              ?,
+              CURDATE(),
+              CASE
+                WHEN ? = 1 THEN DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                WHEN ? = 2 THEN DATE_ADD(CURDATE(), INTERVAL 1 MONTH)
+                WHEN ? = 3 THEN DATE_ADD(CURDATE(), INTERVAL 1 YEAR)
+              END
+            )
+          `;
+
+          db.query(
+            sqlInsert,
+            [usuario_id, membresia_id, membresia_id, membresia_id, membresia_id],
+            (err3) => {
+              if (err3) return res.status(500).json(err3);
+
+              res.json({ message: "Membresía creada correctamente" });
+            }
+          );
+        }
+      });
+    }
+  );
+      
+
 // PROTEGIDO
 /* ==========================
    REGISTRAR ASISTENCIA

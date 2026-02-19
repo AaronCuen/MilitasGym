@@ -31,13 +31,26 @@ function RegistrarRecepcionista() {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:4000/recepcionistas", form);
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        "http://localhost:4000/recepcionistas",
+        form,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
       setMensaje("Recepcionista registrada correctamente");
       setForm({ nombre: "", usuario: "", password: "" });
+
     } catch (err) {
       setMensaje(err.response?.data?.message || "Error al registrar");
     }
   };
+
 
   return (
     <>

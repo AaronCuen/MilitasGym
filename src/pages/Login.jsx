@@ -73,7 +73,6 @@ function Login() {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     localStorage.setItem("rol", data.user.rol);
-
     navigate("/home", { replace: true });
 
   } catch (error) {
