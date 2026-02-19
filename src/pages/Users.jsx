@@ -58,6 +58,45 @@ function Users() {
     }
   };
   
+  const filtrarPorEstado = async (estado) => {
+    const nuevosFiltros = { ...filtros, estado };
+    setFiltros(nuevosFiltros);
+
+    setLoading(true);
+
+    const res = await axios.get(
+      "http://localhost:4000/usuarios/filtrar-con-membresia",
+      {
+        params: nuevosFiltros,
+        headers: authHeaders(),
+      }
+    );
+
+    let data = res.data;
+    console.log("ESTADO ACTUAL:", filtros.estado);
+
+
+    /*if (estado !== "todos") {
+      const filtrados = [];
+
+      for (const u of data) {
+        const activo = await obtenerEstado(u.id);
+
+        if (
+          (estado === "activo" && activo) ||
+          (estado === "inactivo" && !activo)
+        ) {
+          filtrados.push(u);
+        }
+      }
+
+      data = filtrados;
+    }*/
+
+    setUsuarios(data);
+    setLoading(false);
+  };
+
 
   const verUsuario = async (id) => {
     try {
@@ -137,10 +176,10 @@ function Users() {
       for (const u of data) {
         const activo = await obtenerEstado(u.id);
 
-        if (
+       /* if (
           (filtros.estado === "activo" && activo) ||
           (filtros.estado === "inactivo" && !activo)
-        ) {
+        ) */{
           filtrados.push(u);
         }
       }
@@ -216,17 +255,27 @@ function Users() {
               }
             />
 
-            <select
-              style={styles.InputFilters}
-              value={filtros.estado}
-              onChange={(e) =>
-                setFiltros({ ...filtros, estado: e.target.value })
-              }
+            <button
+              style={{
+                ...styles.ButtonSearch,
+                backgroundColor: filtros.estado === "activo" ? "#16a34a" : "#206320",
+              }}
+              onClick={() => filtrarPorEstado("activo")}
             >
-              <option value="todos">Todos</option>
-              <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
-            </select>
+              Activos
+            </button>
+
+            <button
+              style={{
+                ...styles.ButtonSearch,
+                backgroundColor: filtros.estado === "inactivo" ? "#dc2626" : "rgb(116, 29, 29)",
+              }}
+              onClick={() => filtrarPorEstado("inactivo")}
+            >
+              Inactivos
+            </button>
+
+
 
             <button style={styles.ButtonSearch} onClick={buscarUsuarios}>
               Buscar
@@ -351,10 +400,12 @@ function Users() {
 
               <p>
                 <b>Fecha de registro:</b>{" "}
-                {new Date(
-                  usuarioSeleccionado.fecha_registro
-                ).toLocaleString()}
+                {usuarioSeleccionado.fecha_registro}
+              </p><p>
+                <b>Fecha de vencimiento:</b>{" "}
+                {usuarioSeleccionado.fecha_fin}
               </p>
+
               <button
                 style={styles.btnRenew}
                 onClick={() => {

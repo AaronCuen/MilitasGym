@@ -21,58 +21,82 @@ app.use(express.json());
 app.get(
   "/usuarios/filtrar-con-membresia",
   verifyToken,
+  requireRole(["admin", "recepcionista"]),
   (req, res) => {
-  const { id, nombre, fecha_inicio, fecha_fin } = req.query;
 
-  let sql = `
-    SELECT 
-      u.id,
-      u.nombre,
-      u.apellido,
-      u.telefono,
-      u.email,
-      i.fecha_fin,
-      CASE 
-        WHEN i.fecha_fin IS NULL THEN 'INACTIVO'
-        WHEN i.fecha_fin >= CURDATE() THEN 'ACTIVO'
-        ELSE 'INACTIVO'
-      END AS estado
-    FROM usuarios u
-    LEFT JOIN (
-      SELECT usuario_id, MAX(fecha_fin) AS fecha_fin
-      FROM inscripciones
-      GROUP BY usuario_id
-    ) i ON u.id = i.usuario_id
-    WHERE 1=1
-  `;
+    const { id, nombre, fecha_inicio, fecha_fin, estado } = req.query;
 
-  const params = [];
+    let sql = `
+      SELECT 
+        u.id,
+        u.nombre,
+        u.apellido,
+        u.telefono,
+        u.email,
+        i.fecha_fin,
+        CASE 
+          WHEN i.fecha_fin IS NULL THEN 'INACTIVO'
+          WHEN i.fecha_fin >= CURDATE() THEN 'ACTIVO'
+          ELSE 'INACTIVO'
+        END AS estado
+      FROM usuarios u
+      LEFT JOIN (
+        SELECT usuario_id, MAX(fecha_fin) AS fecha_fin
+        FROM inscripciones
+        GROUP BY usuario_id
+      ) i ON u.id = i.usuario_id
+      WHERE 1=1
+    `;
 
-  if (id) {
-    sql += " AND u.id = ?";
-    params.push(id);
+    const params = [];
+
+    // 🔎 Filtro por ID
+    if (id && id.trim() !== "") {
+      sql += " AND u.id = ?";
+      params.push(id);
+    }
+
+    // 🔎 Filtro por nombre
+    if (nombre && nombre.trim() !== "") {
+      sql += " AND (u.nombre LIKE ? OR u.apellido LIKE ?)";
+      params.push(`%${nombre}%`, `%${nombre}%`);
+    }
+
+    // 📅 Día exacto de REGISTRO
+    if (fecha_inicio && fecha_inicio.trim() !== "") {
+      sql += " AND DATE(u.fecha_registro) = ?";
+      params.push(fecha_inicio);
+    }
+
+    // 📅 Día exacto de VENCIMIENTO
+    if (fecha_fin && fecha_fin.trim() !== "") {
+      sql += " AND DATE(i.fecha_fin) = ?";
+      params.push(fecha_fin);
+    }
+
+    // 🟢🔴 Filtro por estado
+    if (estado && estado !== "todos") {
+      sql += `
+        AND (
+          CASE 
+            WHEN i.fecha_fin IS NULL THEN 'INACTIVO'
+            WHEN i.fecha_fin >= CURDATE() THEN 'ACTIVO'
+            ELSE 'INACTIVO'
+          END
+        ) = ?
+      `;
+      params.push(estado.toUpperCase());
+    }
+
+    sql += " ORDER BY u.id DESC";
+
+    db.query(sql, params, (err, results) => {
+      if (err) return res.status(500).json(err);
+      res.json(results);
+    });
   }
+);
 
-  if (nombre) {
-    sql += " AND (u.nombre LIKE ? OR u.apellido LIKE ?)";
-    params.push(`%${nombre}%`, `%${nombre}%`);
-  }
-
-  if (fecha_inicio) {
-    sql += " AND i.fecha_fin >= ?";
-    params.push(fecha_inicio);
-  }
-
-  if (fecha_fin) {
-    sql += " AND i.fecha_fin <= ?";
-    params.push(fecha_fin);
-  }
-
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).json(err);
-    res.json(results);
-  });
-});
 
 // PROTEGIDO JWT + ADMIN 
 app.post(
@@ -565,7 +589,23 @@ app.get(
   (req, res) => {
   const { id } = req.params;
 
-  const sql = "SELECT * FROM usuarios WHERE id = ?";
+  const sql = `
+    SELECT 
+      u.id,
+      u.nombre,
+      u.apellido,
+      u.telefono,
+      u.email,
+      u.foto,
+      DATE_FORMAT(u.fecha_registro, '%Y-%m-%d') AS fecha_registro,
+      DATE_FORMAT(u.fecha_nacimiento, '%Y-%m-%d') AS fecha_nacimiento,
+      DATE_FORMAT(i.fecha_fin, '%Y-%m-%d') AS fecha_fin
+    FROM usuarios u
+    LEFT JOIN inscripciones i ON u.id = i.usuario_id
+    WHERE u.id = ?
+  `;
+
+
 
   db.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json(err);
