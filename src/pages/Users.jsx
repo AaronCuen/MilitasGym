@@ -218,7 +218,7 @@ function Users() {
 
       <main style={styles.content}>
         <div style={styles.card}>
-          <h2 style={styles.title}>Usuarios registrados</h2>
+          <h2 style={styles.title}>Lista de usuarios registrados</h2>
 
           <div style={styles.FilersRow}>
             <input
@@ -239,21 +239,27 @@ function Users() {
               }
             />
 
-            <input
-              style={styles.InputFilters}
-              type="date"
-              onChange={(e) =>
-                setFiltros({ ...filtros, fecha_inicio: e.target.value })
-              }
-            />
+            <div style={styles.dateGroup}>
+              <label style={styles.dateLabel}>Fecha de registro</label>
+              <input
+                type="date"
+                style={styles.InputFilters}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, fecha_inicio: e.target.value })
+                }
+              />
+            </div>
 
-            <input
-              style={styles.InputFilters}
-              type="date"
-              onChange={(e) =>
-                setFiltros({ ...filtros, fecha_fin: e.target.value })
-              }
-            />
+            <div style={styles.dateGroup}>
+              <label style={styles.dateLabel}>Fecha de vencimiento</label>
+              <input
+                type="date"
+                style={styles.InputFilters}
+                onChange={(e) =>
+                  setFiltros({ ...filtros, fecha_fin: e.target.value })
+                }
+              />
+            </div>
 
             <button
               style={{
@@ -290,6 +296,8 @@ function Users() {
           ) : usuarios.length === 0 ? (
             <p>No hay usuarios registrados.</p>
           ) : (
+            
+            <div style={styles.tableContainer}>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -308,30 +316,37 @@ function Users() {
 
               <tbody>
                 {usuarios.map((u, index) => (
-                  <tr
-                    key={u.id}
-                    style={{
-                      backgroundColor:
-                        index % 2 === 0 ? "#ffffff" : "#f9fafb",
-                    }}
-                  >
+              <tr
+                key={u.id}
+                style={{
+                  backgroundColor: index % 2 === 0 ? "#ffffff" : "#f9fafb",
+                  transition: "background-color 0.2s ease",
+                  cursor: "default",
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f3f4f6")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    index % 2 === 0 ? "#ffffff" : "#f9fafb")
+                }
+              >
                     <td style={styles.td}>{u.id}</td>
                     <td style={styles.td}>{u.nombre}</td>
                     <td style={styles.td}>{u.apellido}</td>
                     <td style={styles.td}>{u.telefono}</td>
                     <td style={styles.td}>{u.email}</td>
 
-                    <td
-                      style={{
-                        ...styles.td,
-                        color:
+                    <td style={styles.td}>
+                      <span
+                        style={
                           u.estado === "ACTIVO"
-                            ? "#16a34a"
-                            : "#dc2626",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {u.estado}
+                            ? styles.estadoActivo
+                            : styles.estadoInactivo
+                        }
+                      >
+                        {u.estado}
+                      </span>
                     </td>
 
                     <td style={styles.td}>
@@ -344,12 +359,16 @@ function Users() {
                       <div style={styles.actions}>
                         <button
                           style={styles.btnView}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                           onClick={() => verUsuario(u.id)}
                         >
                           Ver
                         </button>
                         <button
                           style={styles.btnDelete}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                           onClick={() => eliminarUsuario(u.id)}
                         >
                           Eliminar
@@ -360,108 +379,175 @@ function Users() {
                 ))}
               </tbody>
             </table>
+           </div>
           )}
         </div>
 
-        {mostrarModal && usuarioSeleccionado && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
-              {usuarioSeleccionado.foto && (
-                <div style={{ textAlign: "center", marginTop: "10px" }}>
-                  <img
-                    src={usuarioSeleccionado.foto}
-                    alt="Foto del usuario"
-                    style={{
-                      width: "170px",
-                      height: "170px",
-                      objectFit: "cover",
-                      borderRadius: "10%",
-                      border: "3px solid #a31211",
-                    }}
-                  />
-                </div>
-              )}
+{mostrarModal && usuarioSeleccionado && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.modal}>
+      <div style={styles.modalContent}>
 
-              <p><b>ID:</b> {usuarioSeleccionado.id}</p>
-              <p><b>Nombre:</b> {usuarioSeleccionado.nombre}</p>
-              <p><b>Apellido:</b> {usuarioSeleccionado.apellido}</p>
-              <p><b>Teléfono:</b> {usuarioSeleccionado.telefono}</p>
-              <p><b>Email:</b> {usuarioSeleccionado.email}</p>
-
-              <p>
-                <b>Fecha de nacimiento:</b>{" "}
-                {usuarioSeleccionado.fecha_nacimiento || "No registrada"}
+        {usuarioSeleccionado.foto && (
+          <div style={styles.profileHeader}>
+            <img
+              src={usuarioSeleccionado.foto}
+              alt="Foto del usuario"
+              style={styles.profileImage}
+            />
+            <div>
+              <h2 style={styles.profileName}>
+                {usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}
+              </h2>
+              <p style={styles.profileEmail}>
+                {usuarioSeleccionado.email}
               </p>
-
-              <p>
-                <b>Género:</b>{" "}
-                {usuarioSeleccionado.genero || "No registrado"}
-              </p>
-
-              <p>
-                <b>Fecha de registro:</b>{" "}
-                {usuarioSeleccionado.fecha_registro}
-              </p><p>
-                <b>Fecha de vencimiento:</b>{" "}
-                {usuarioSeleccionado.fecha_fin}
-              </p>
-
-              <button
-                style={styles.btnRenew}
-                onClick={() => {
-                  setUsuarioRenovar(usuarioSeleccionado);
-                  setMostrarModalRenovar(true);
-                }}
-              >
-                Renovar
-              </button>
-
-              <button
-                style={styles.btnClose}
-                onClick={() => setMostrarModal(false)}
-              >
-                Cerrar
-              </button>
             </div>
           </div>
         )}
-        {mostrarModalRenovar && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
-              <h3 style={{ marginBottom: "15px" }}>
-                Selecciona duración de la renovación
-              </h3>
 
-              <button
-                style={styles.btnOption}
-                onClick={() => confirmarRenovacion(1)}
-              >
-                1 Semana (7 días)
-              </button>
-
-              <button
-                style={styles.btnOption}
-                onClick={() => confirmarRenovacion(2)}
-              >
-                1 Mes
-              </button>
-
-              <button
-                style={styles.btnOption}
-                onClick={() => confirmarRenovacion(3)}
-              >
-                1 Año
-              </button>
-
-              <button
-                style={styles.btnCancel}
-                onClick={() => setMostrarModalRenovar(false)}
-              >
-                Cancelar
-              </button>
-            </div>
+        <div style={styles.profileGrid}>
+          <div>
+            <span style={styles.label}>ID</span>
+            <p style={styles.value}>{usuarioSeleccionado.id}</p>
           </div>
-        )}
+
+          <div>
+            <span style={styles.label}>Teléfono</span>
+            <p style={styles.value}>{usuarioSeleccionado.telefono}</p>
+          </div>
+
+          <div>
+            <span style={styles.label}>Fecha de nacimiento</span>
+            <p style={styles.value}>
+              {usuarioSeleccionado.fecha_nacimiento || "No registrada"}
+            </p>
+          </div>
+
+          <div>
+            <span style={styles.label}>Género</span>
+            <p style={styles.value}>
+              {usuarioSeleccionado.genero || "No registrado"}
+            </p>
+          </div>
+
+          <div>
+            <span style={styles.label}>Fecha de registro</span>
+            <p style={styles.value}>
+              {usuarioSeleccionado.fecha_registro}
+            </p>
+          </div>
+
+          <div>
+            <span style={styles.label}>Fecha de vencimiento</span>
+            <p style={styles.value}>
+              {usuarioSeleccionado.fecha_fin}
+            </p>
+          </div>
+        </div>
+
+        {/* BOTÓN RENOVAR */}
+        <div style={styles.modalButtons}>
+          <button
+            style={styles.btnRenew}
+            onClick={() => {
+              setUsuarioRenovar(usuarioSeleccionado);
+              setMostrarModalRenovar(true);
+            }}
+          >
+            Renovar
+          </button>
+        </div>
+
+        {/* BOTÓN CERRAR PEQUEÑO CENTRADO */}
+        <div style={styles.modalCloseContainer}>
+          <button
+            style={styles.btnCloseSmall}
+            onClick={() => setMostrarModal(false)}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
+          >
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
+
+{mostrarModalRenovar && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.renewModal}>
+      
+      <div style={styles.renewHeader}>
+        <h3 style={styles.renewTitle}>Renovar Membresía</h3>
+        <p style={styles.renewSubtitle}>
+          Selecciona la duración de la nueva membresía
+        </p>
+      </div>
+
+      <div style={styles.renewGrid}>
+        <button
+          style={styles.renewCard}
+          onMouseEnter={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCardHover)
+          }
+          onMouseLeave={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCard)
+          }
+          onClick={() => confirmarRenovacion(1)}
+        >
+          <div style={styles.renewCardTitle}>1 Semana</div>
+          <div style={styles.renewCardDesc}>7 días de acceso</div>
+        </button>
+
+        <button
+          style={styles.renewCard}
+          onMouseEnter={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCardHover)
+          }
+          onMouseLeave={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCard)
+          }
+          onClick={() => confirmarRenovacion(2)}
+        >
+          <div style={styles.renewCardTitle}>1 Mes</div>
+          <div style={styles.renewCardDesc}>30 días de acceso</div>
+        </button>
+
+        <button
+          style={styles.renewCard}
+          onMouseEnter={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCardHover)
+          }
+          onMouseLeave={(e) =>
+            Object.assign(e.currentTarget.style, styles.renewCard)
+          }
+          onClick={() => confirmarRenovacion(3)}
+        >
+          <div style={styles.renewCardTitle}>1 Año</div>
+          <div style={styles.renewCardDesc}>365 días de acceso</div>
+        </button>
+      </div>
+
+      {/* BOTONES FINALES */}
+      <div style={{ marginTop: "25px", textAlign: "center" }}>
+      
+        <div style={{ marginTop: "12px" }}>
+          <button
+            style={styles.btnCloseSmall}
+            onClick={() => setMostrarModalRenovar(false)}
+          >
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+)}
 
       </main>
     </>
@@ -486,6 +572,21 @@ const styles = {
     flexDirection: "column",
     boxShadow: "2px 0 10px rgba(0,0,0,0.4)",
   },
+  modalCloseContainer: {
+  marginTop: "20px",
+  display: "flex",
+  justifyContent: "center",
+},
+
+btnCloseSmall: {
+  backgroundColor: "transparent",
+  color: "#6b7280",
+  border: "none",
+  fontSize: "13px",
+  cursor: "pointer",
+  padding: "4px 8px",
+  transition: "all 0.2s ease",
+},
 
   logo: {
     height: "64px",
@@ -568,12 +669,19 @@ const styles = {
     outline: "none",
     boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)"
   },
+    tableContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: "16px",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
+    border: "1px solid #f1f5f9",
+  },
+
   FilersRow: {
     display: "flex",
     gap: "8px",
-    alignItems: "center",
     marginBottom: "14px",
     flexWrap: "nowrap",
+    alignItems: "flex-end", // 👈 ESTA LÍNEA
   },
 
   right: {
@@ -661,7 +769,7 @@ const styles = {
   },
 
   th: {
-    background: "linear-gradient(to right, #580c0c, #6e0101)",
+    backgroundColor: "#991b1b", // rojo más elegante
     color: "#ffffff",
     padding: "14px",
     textAlign: "left",
@@ -681,23 +789,27 @@ actions: {
 },
 
 btnView: {
-  padding: "6px 10px",
   backgroundColor: "#1f2937",
-  color: "#fff",
+  color: "#ffffff",
   border: "none",
-  borderRadius: "6px",
-  fontSize: "12px",
+  padding: "6px 12px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "500",
   cursor: "pointer",
+  transition: "all 0.2s ease",
 },
 
 btnDelete: {
-  padding: "6px 10px",
   backgroundColor: "#7f1d1d",
-  color: "#fff",
+  color: "#ffffff",
   border: "none",
-  borderRadius: "6px",
-  fontSize: "12px",
+  padding: "6px 12px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "500",
   cursor: "pointer",
+  transition: "all 0.2s ease",
 },
 modalOverlay: {
   position: "fixed",
@@ -749,11 +861,12 @@ btnRenew: {
   backgroundColor: "#16a34a",
   color: "white",
   border: "none",
-  padding: "8px 14px",
-  borderRadius: "6px",
+  padding: "10px 18px",
+  borderRadius: "8px",
   cursor: "pointer",
-  marginRight: "10px",
-  fontWeight: "600"
+  marginTop: "30px", // 🔥 separación real del texto
+  fontWeight: "600",
+  display: "block",
 },
 
 btnOption: {
@@ -777,7 +890,165 @@ btnCancel: {
   width: "100%",
   borderRadius: "6px",
   cursor: "pointer"
-}
+},
+renewModal: {
+  background: "#ffffff",
+  padding: "35px",
+  borderRadius: "18px",
+  width: "480px",
+  maxWidth: "90vw",
+  boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+  textAlign: "center",
+},
+
+renewHeader: {
+  marginBottom: "25px",
+},
+
+renewTitle: {
+  fontSize: "20px",
+  fontWeight: "600",
+  color: "#111827",
+  marginBottom: "6px",
+},
+
+renewSubtitle: {
+  fontSize: "14px",
+  color: "#6b7280",
+},
+
+renewGrid: {
+  display: "grid",
+  gap: "14px",
+  marginBottom: "20px",
+},
+
+renewCard: {
+  backgroundColor: "#ffffff",
+  border: "1px solid #e5e7eb",
+  borderRadius: "12px",
+  padding: "16px",
+  cursor: "pointer",
+  textAlign: "left",
+  transition: "all 0.2s ease",
+  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+},
+renewCardHover: {
+  border: "1px solid #9ca3af", // gris más visible
+  backgroundColor: "#f3f4f6",  // fondo ligeramente gris
+  boxShadow: "0 8px 20px rgba(0,0,0,0.12)", // sombra más marcada
+  transform: "translateY(-3px)", // efecto elevación
+},
+
+renewCardTitle: {
+  fontSize: "16px",
+  fontWeight: "600",
+  color: "#111827",
+},
+modalContent: {
+  padding: "20px",
+},
+
+profileHeader: {
+  display: "flex",
+  alignItems: "center",
+  gap: "20px",
+  marginBottom: "25px",
+},
+
+profileImage: {
+  width: "110px",
+  height: "110px",
+  objectFit: "cover",
+  borderRadius: "50%",
+  border: "4px solid #991b1b",
+},
+
+profileName: {
+  margin: 0,
+  fontSize: "22px",
+  fontWeight: "600",
+},
+
+profileEmail: {
+  margin: "5px 0 0 0",
+  color: "#6b7280",
+  fontSize: "14px",
+},
+
+profileGrid: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "18px",
+},
+
+label: {
+  fontSize: "11px",
+  color: "#6b7280",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+},
+
+value: {
+  margin: "4px 0 0 0",
+  fontWeight: "500",
+},
+
+modalButtons: {
+  marginTop: "30px",
+  display: "flex",
+  gap: "10px",
+  justifyContent: "flex-start", 
+},
+
+renewCardDesc: {
+  fontSize: "13px",
+  color: "#6b7280",
+  marginTop: "4px",
+},
+
+btnCancelRenew: {
+  marginTop: "10px",
+  padding: "12px",
+  width: "100%",
+  backgroundColor: "#1f2937",
+  border: "none",
+  borderRadius: "10px",
+  color: "#fff",
+  fontWeight: "600",
+  cursor: "pointer",
+},
+
+dateGroup: {
+  display: "flex",
+  flexDirection: "column",
+  fontSize: "12px",
+},
+
+dateLabel: {
+  marginBottom: "4px",
+  color: "#6b7280",
+  fontWeight: "500",
+},
+estadoActivo: {
+  color: "#166534",
+  backgroundColor: "#dcfce7",
+  padding: "4px 10px",
+  borderRadius: "20px",
+  fontWeight: "600",
+  fontSize: "12px",
+  display: "inline-block",
+},
+
+estadoInactivo: {
+  color: "#991b1b",
+  backgroundColor: "#fee2e2",
+  padding: "4px 10px",
+  borderRadius: "20px",
+  fontWeight: "600",
+  fontSize: "12px",
+  display: "inline-block",
+},
 
 
 
