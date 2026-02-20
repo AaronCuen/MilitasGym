@@ -34,7 +34,7 @@ function RegistrarRecepcionista() {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        "http://localhost:4000/recepcionistas",
+        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/recepcionistas",
         form,
         {
           headers: {

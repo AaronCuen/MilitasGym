@@ -24,7 +24,7 @@ function BuscarUsuario() {
       }
 
       // 🔍 1. Buscar usuario
-      const res = await fetch(`http://localhost:4000/usuarios/${id}`, {
+      const res = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -42,7 +42,7 @@ function BuscarUsuario() {
       setUsuario(data);
 
       // 📄 2. Obtener inscripción
-      const insRes = await fetch(`http://localhost:4000/inscripcion/${id}`, {
+      const insRes = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripcion/${id}`, {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -62,7 +62,7 @@ function BuscarUsuario() {
       // ✅ 3. Registrar asistencia SOLO si está activa
       if (estado === "ACTIVA") {
         const asisRes = await fetch(
-          `http://localhost:4000/asistencia/${id}`,
+          `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/asistencia/${id}`,
           {
             method: "POST",
             headers: {

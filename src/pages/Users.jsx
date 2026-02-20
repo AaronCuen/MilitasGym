@@ -32,7 +32,7 @@ function Users() {
   const confirmarRenovacion = async (membresia_id) => {
     try {
       await axios.post(
-        "http://localhost:4000/inscripciones/renovar",
+        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripciones/renovar",
         {
           usuario_id: usuarioRenovar.id,
           membresia_id
@@ -47,7 +47,7 @@ function Users() {
 
       // Recargar lista
       const res = await axios.get(
-        "http://localhost:4000/usuarios-con-membresia",
+        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
         { headers: authHeaders() }
       );
 
@@ -65,7 +65,7 @@ function Users() {
     setLoading(true);
 
     const res = await axios.get(
-      "http://localhost:4000/usuarios/filtrar-con-membresia",
+      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/filtrar-con-membresia",
       {
         params: nuevosFiltros,
         headers: authHeaders(),
@@ -101,7 +101,7 @@ function Users() {
   const verUsuario = async (id) => {
     try {
       const res = await axios.get(
-        `http://localhost:4000/usuarios/${id}`,
+        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`,
         { headers: authHeaders() }
       );
       setUsuarioSeleccionado(res.data);
@@ -116,7 +116,7 @@ function Users() {
 
     try {
       await axios.delete(
-        `http://localhost:4000/usuarios/${id}`,
+        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`,
         { headers: authHeaders() }
       );
       setUsuarios(usuarios.filter((u) => u.id !== id));
@@ -128,7 +128,7 @@ function Users() {
   const obtenerEstado = async (usuario_id) => {
     try {
       const res = await axios.get(
-        `http://localhost:4000/inscripcion/${usuario_id}`,
+        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripcion/${usuario_id}`,
         { headers: authHeaders() }
       );
 
@@ -151,7 +151,7 @@ function Users() {
     });
 
     axios
-      .get("http://localhost:4000/usuarios-con-membresia", {
+      .get("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia", {
         headers: authHeaders(),
       })
       .then((res) => setUsuarios(res.data));
@@ -161,7 +161,7 @@ function Users() {
     setLoading(true);
 
     const res = await axios.get(
-      "http://localhost:4000/usuarios/filtrar-con-membresia",
+      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/filtrar-con-membresia",
       {
         params: filtros,
         headers: authHeaders(),
@@ -193,7 +193,7 @@ function Users() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/usuarios-con-membresia", {
+      .get("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia", {
         headers: authHeaders(),
       })
       .then((res) => {

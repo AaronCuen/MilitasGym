@@ -70,7 +70,7 @@ function RegisterUser() {
         fotoUrl = await subirImagen();
       }
 
-      const res = await fetch("http://localhost:4000/registrar_usuario", {
+      const res = await fetch("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/registrar_usuario", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
