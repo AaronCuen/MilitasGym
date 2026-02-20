@@ -587,36 +587,37 @@ app.get(
   verifyToken,
   requireRole(["admin", "recepcionista"]),
   (req, res) => {
-  const { id } = req.params;
 
-  const sql = `
-    SELECT 
-      u.id,
-      u.nombre,
-      u.apellido,
-      u.telefono,
-      u.email,
-      u.foto,
-      DATE_FORMAT(u.fecha_registro, '%Y-%m-%d') AS fecha_registro,
-      DATE_FORMAT(u.fecha_nacimiento, '%Y-%m-%d') AS fecha_nacimiento,
-      DATE_FORMAT(i.fecha_fin, '%Y-%m-%d') AS fecha_fin
-    FROM usuarios u
-    LEFT JOIN inscripciones i ON u.id = i.usuario_id
-    WHERE u.id = ?
-  `;
+    const { id } = req.params;
 
-
-
-  db.query(sql, [id], (err, results) => {
-    if (err) return res.status(500).json(err);
-
-    if (results.length === 0) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-
-    res.json(results[0]);
-  });
-});
+    const sql = `
+      SELECT 
+        u.id,
+        u.nombre,
+        u.apellido,
+        u.telefono,
+        u.email,
+        u.foto,
+        DATE_FORMAT(u.fecha_registro, '%Y-%m-%d') AS fecha_registro,
+        DATE_FORMAT(u.fecha_nacimiento, '%Y-%m-%d') AS fecha_nacimiento,
+        DATE_FORMAT(i.fecha_fin, '%Y-%m-%d') AS fecha_fin
+      FROM usuarios u
+      LEFT JOIN (
+        SELECT usuario_id, MAX(fecha_fin) AS fecha_fin
+        FROM inscripciones
+        GROUP BY usuario_id
+      ) i ON u.id = i.usuario_id
+      WHERE u.id = ?
+    `;
+    db.query(sql, [id], (err, results) => {
+      if (err) return res.status(500).json(err);
+      if (results.length === 0) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      res.json(results[0]);
+    });
+  }
+);
 
 /* ==========================
    PRUEBA DE FUNCION PARA ELIMINAR USUARIO
