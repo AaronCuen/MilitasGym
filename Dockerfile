@@ -1,33 +1,27 @@
-# =========================
-# Etapa 1: Build
-# =========================
-FROM node:20-alpine AS build
-
+# Etapa 1: build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copiar dependencias primero (mejor cache)
+# Instalar dependencias
 COPY package*.json ./
 RUN npm install
 
-# Copiar resto del proyecto
+# Copiar todo el proyecto
 COPY . .
 
-# Construir proyecto
+# Build producción (genera carpeta dist)
 RUN npm run build
 
-# =========================
-# Etapa 2: Producción
-# =========================
+# Etapa 2: servidor
 FROM nginx:alpine
 
-# Eliminar config default de nginx
+# Quitar contenido default de nginx
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copiar build generado por Vite
+# Copiar build
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Exponer puerto
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
