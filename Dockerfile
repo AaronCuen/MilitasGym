@@ -1,4 +1,4 @@
-# Etapa 1: build
+# ---------- ETAPA 1: BUILD ----------
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -7,20 +7,23 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copiar todo el proyecto
+# Copiar código y generar build
 COPY . .
-
-# Build producción (genera carpeta dist)
 RUN npm run build
 
-# Etapa 2: servidor
+
+# ---------- ETAPA 2: NGINX ----------
 FROM nginx:alpine
 
-# Quitar contenido default de nginx
+# 🔥 Eliminar configuración por defecto de nginx
+RUN rm -rf /etc/nginx/conf.d/*
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copiar build
+# Copiar build generado
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copiar nuestra configuración personalizada
+COPY default.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
