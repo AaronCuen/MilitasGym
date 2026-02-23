@@ -12,12 +12,16 @@ function RegisterUser() {
     apellido: "",
     telefono: "",
     email: "",
-    membresia_id: ""
+    membresia_id: "",
+    fecha_inicio: "",
+    fecha_fin: ""
   });
 
   const [mensaje, setMensaje] = useState("");
 
-  // 🔼 Subir imagen a Cloudinary
+  // 🔹 Detecta si es manual (ID 4 = Otro)
+  const esManual = form.membresia_id === "4";
+
   const subirImagen = async () => {
     if (!imagen) return null;
 
@@ -34,11 +38,6 @@ function RegisterUser() {
     );
 
     const data = await res.json();
-
-    if (!data.secure_url) {
-      throw new Error("No se obtuvo secure_url de Cloudinary");
-    }
-
     return data.secure_url;
   };
 
@@ -52,13 +51,10 @@ function RegisterUser() {
     }
 
     if (name === "nombre" || name === "apellido") {
-      const soloLetras = value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, "").slice(0, 40);
+      const soloLetras = value
+        .replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, "")
+        .slice(0, 40);
       setForm({ ...form, [name]: soloLetras });
-      return;
-    }
-
-    if (name === "email") {
-      setForm({ ...form, email: value.slice(0, 60) });
       return;
     }
 
@@ -70,37 +66,29 @@ function RegisterUser() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validaciones frontend
-
-    if (!/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]{2,40}$/.test(form.nombre)) {
-      setMensaje("Nombre inválido (solo letras, mínimo 2 caracteres)");
-      return;
-    }
-
-    if (!/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]{2,40}$/.test(form.apellido)) {
-      setMensaje("Apellido inválido (solo letras, mínimo 2 caracteres)");
-      return;
-    }
-
-    if (!/^\d{10}$/.test(form.telefono)) {
-      setMensaje("El teléfono debe tener exactamente 10 dígitos numéricos");
-      return;
-    }
-
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setMensaje("Correo electrónico inválido");
-      return;
-    }
 
     if (!form.membresia_id) {
       setMensaje("Selecciona una membresía");
       return;
     }
 
+    // 🔹 Validación solo si es manual
+    if (esManual) {
+      if (!form.fecha_inicio || !form.fecha_fin) {
+        setMensaje("Debes seleccionar ambas fechas");
+        return;
+      }
+
+      if (form.fecha_fin <= form.fecha_inicio) {
+        setMensaje("La fecha de vencimiento debe ser mayor a la fecha de inicio");
+        return;
+      }
+    }
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setMensaje("Sesión expirada. Inicia sesión nuevamente");
+        setMensaje("Sesión expirada");
         navigate("/");
         return;
       }
@@ -110,18 +98,29 @@ function RegisterUser() {
         fotoUrl = await subirImagen();
       }
 
-      const res = await fetch("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/registrar_usuario", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...form,
-          membresia_id: Number(form.membresia_id),
-          foto: fotoUrl
-        })
-      });
+      const bodyData = {
+        ...form,
+        membresia_id: Number(form.membresia_id),
+        foto: fotoUrl
+      };
+
+      // 🔹 Si NO es manual, eliminamos fechas
+      if (!esManual) {
+        delete bodyData.fecha_inicio;
+        delete bodyData.fecha_fin;
+      }
+
+      const res = await fetch(
+        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/registrar_usuario",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        }
+      );
 
       const data = await res.json();
 
@@ -131,24 +130,27 @@ function RegisterUser() {
       }
 
       setMensaje(
-  `Usuario registrado correctamente. ID asignado: ${data.usuario_id}`
-);
+        `Usuario registrado correctamente. ID asignado: ${data.usuario_id}`
+      );
 
       setForm({
         nombre: "",
         apellido: "",
         telefono: "",
         email: "",
-        membresia_id: ""
+        membresia_id: "",
+        fecha_inicio: "",
+        fecha_fin: ""
       });
 
       setImagen(null);
+
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
     } catch (error) {
-      console.error("ERROR REAL:", error);
+      console.error(error);
       setMensaje("Error de servidor");
     }
   };
@@ -174,10 +176,8 @@ function RegisterUser() {
               value={form.nombre}
               onChange={handleChange}
               required
-              maxLength={40}
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,40}"
               style={styles.input}
-            />  
+            />
 
             <input
               type="text"
@@ -186,8 +186,6 @@ function RegisterUser() {
               value={form.apellido}
               onChange={handleChange}
               required
-              maxLength={40}
-              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,40}"
               style={styles.input}
             />
 
@@ -198,9 +196,6 @@ function RegisterUser() {
               value={form.telefono}
               onChange={handleChange}
               required
-              maxLength={10}
-              pattern="\d{10}"
-              inputMode="numeric"
               style={styles.input}
             />
 
@@ -210,7 +205,6 @@ function RegisterUser() {
               placeholder="Correo"
               value={form.email}
               onChange={handleChange}
-              maxLength={60}
               style={styles.input}
             />
 
@@ -221,10 +215,32 @@ function RegisterUser() {
               style={styles.input}
             >
               <option value="">Selecciona una membresía</option>
-              <option value="1">Semanal</option>
-              <option value="2">Mensual</option>
-              <option value="3">Anual</option>
+              <option value="1">Día</option>
+              <option value="2">Semana</option>
+              <option value="3">Mes</option>
+              <option value="4">Otro</option>
             </select>
+
+            {/* 🔹 Campos manuales solo si selecciona "Otro" */}
+            {esManual && (
+              <>
+                <input
+                  type="date"
+                  name="fecha_inicio"
+                  value={form.fecha_inicio}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+
+                <input
+                  type="date"
+                  name="fecha_fin"
+                  value={form.fecha_fin}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+              </>
+            )}
 
             {imagen && (
               <img
@@ -259,7 +275,9 @@ function RegisterUser() {
             <p
               style={{
                 ...styles.message,
-                color: mensaje.includes("correctamente") ? "#15803d" : "#b91c1c"
+                color: mensaje.includes("correctamente")
+                  ? "#15803d"
+                  : "#b91c1c"
               }}
             >
               {mensaje}
@@ -270,6 +288,8 @@ function RegisterUser() {
     </>
   );
 }
+
+
 
 const styles = {
     topbar: {

@@ -10,6 +10,10 @@ function Users() {
   const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
   const [usuarioRenovar, setUsuarioRenovar] = useState(null);
 
+  const [fechaInicioManual, setFechaInicioManual] = useState("");
+  const [fechaFinManual, setFechaFinManual] = useState("");
+  const [modoManual, setModoManual] = useState(false);
+
 
   const [filtros, setFiltros] = useState({
     id: "",
@@ -29,34 +33,49 @@ function Users() {
     };
   };
 
-  const confirmarRenovacion = async (membresia_id) => {
-    try {
-      await axios.post(
-        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripciones/renovar",
-        {
-          usuario_id: usuarioRenovar.id,
-          membresia_id
-        },
-        { headers: authHeaders() }
-      );
+const confirmarRenovacion = async (membresia_id) => {
+  try {
 
-      alert("Membresía renovada correctamente");
+    const data = {
+      usuario_id: usuarioRenovar.id,
+      membresia_id
+    };
 
-      setMostrarModalRenovar(false);
-      setMostrarModal(false);
+    if (membresia_id === 4) {
+      if (!fechaInicioManual || !fechaFinManual) {
+        alert("Debes seleccionar ambas fechas");
+        return;
+      }
 
-      // Recargar lista
-      const res = await axios.get(
-        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
-        { headers: authHeaders() }
-      );
-
-      setUsuarios(res.data);
-
-    } catch (error) {
-      alert("Error al renovar membresía");
+      data.fecha_inicio_manual = fechaInicioManual;
+      data.fecha_fin_manual = fechaFinManual;
     }
-  };
+
+    await axios.post(
+      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripciones/renovar",
+      data,
+      { headers: authHeaders() }
+    );
+
+    alert("Membresía renovada correctamente");
+
+    setMostrarModalRenovar(false);
+    setMostrarModal(false);
+    setModoManual(false);
+    setFechaInicioManual("");
+    setFechaFinManual("");
+
+    const res = await axios.get(
+      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
+      { headers: authHeaders() }
+    );
+
+    setUsuarios(res.data);
+
+  } catch (error) {
+    alert("Error al renovar membresía");
+  }
+};
   
   const filtrarPorEstado = async (estado) => {
     const nuevosFiltros = { ...filtros, estado };
@@ -483,66 +502,101 @@ function Users() {
       <div style={styles.renewHeader}>
         <h3 style={styles.renewTitle}>Renovar Membresía</h3>
         <p style={styles.renewSubtitle}>
-          Selecciona la duración de la nueva membresía
+          Selecciona la duración
         </p>
       </div>
 
-      <div style={styles.renewGrid}>
-        <button
-          style={styles.renewCard}
-          onMouseEnter={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCardHover)
-          }
-          onMouseLeave={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCard)
-          }
-          onClick={() => confirmarRenovacion(1)}
-        >
-          <div style={styles.renewCardTitle}>1 Semana</div>
-          <div style={styles.renewCardDesc}>7 días de acceso</div>
-        </button>
+      {!modoManual && (
+        <div style={styles.renewGrid}>
 
-        <button
-          style={styles.renewCard}
-          onMouseEnter={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCardHover)
-          }
-          onMouseLeave={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCard)
-          }
-          onClick={() => confirmarRenovacion(2)}
-        >
-          <div style={styles.renewCardTitle}>1 Mes</div>
-          <div style={styles.renewCardDesc}>30 días de acceso</div>
-        </button>
-
-        <button
-          style={styles.renewCard}
-          onMouseEnter={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCardHover)
-          }
-          onMouseLeave={(e) =>
-            Object.assign(e.currentTarget.style, styles.renewCard)
-          }
-          onClick={() => confirmarRenovacion(3)}
-        >
-          <div style={styles.renewCardTitle}>1 Año</div>
-          <div style={styles.renewCardDesc}>365 días de acceso</div>
-        </button>
-      </div>
-
-      {/* BOTONES FINALES */}
-      <div style={{ marginTop: "25px", textAlign: "center" }}>
-      
-        <div style={{ marginTop: "12px" }}>
+          {/* DIA */}
           <button
-            style={styles.btnCloseSmall}
-            onClick={() => setMostrarModalRenovar(false)}
+            style={styles.renewCard}
+            onClick={() => confirmarRenovacion(1)}
           >
-            Cerrar
+            <div style={styles.renewCardTitle}>1 Día</div>
+            <div style={styles.renewCardDesc}>Acceso por 1 día</div>
           </button>
-        </div>
 
+          {/* SEMANA */}
+          <button
+            style={styles.renewCard}
+            onClick={() => confirmarRenovacion(2)}
+          >
+            <div style={styles.renewCardTitle}>1 Semana</div>
+            <div style={styles.renewCardDesc}>7 días de acceso</div>
+          </button>
+
+          {/* MES */}
+          <button
+            style={styles.renewCard}
+            onClick={() => confirmarRenovacion(3)}
+          >
+            <div style={styles.renewCardTitle}>1 Mes</div>
+            <div style={styles.renewCardDesc}>30 días de acceso</div>
+          </button>
+
+          {/* OTRO */}
+          <button
+            style={styles.renewCard}
+            onClick={() => setModoManual(true)}
+          >
+            <div style={styles.renewCardTitle}>Otro</div>
+            <div style={styles.renewCardDesc}>Seleccionar fechas manualmente</div>
+          </button>
+
+        </div>
+      )}
+
+      {modoManual && (
+        <div style={{ marginTop: "20px", textAlign: "center" }}>
+
+          <div style={{ marginBottom: "15px" }}>
+            <label>Fecha Inicio</label>
+            <input
+              type="date"
+              value={fechaInicioManual}
+              onChange={(e) => setFechaInicioManual(e.target.value)}
+            />
+          </div>
+
+          <div style={{ marginBottom: "15px" }}>
+            <label>Fecha Fin</label>
+            <input
+              type="date"
+              value={fechaFinManual}
+              onChange={(e) => setFechaFinManual(e.target.value)}
+            />
+          </div>
+
+          <button
+            style={styles.btnRenew}
+            onClick={() => confirmarRenovacion(4)}
+          >
+            Confirmar
+          </button>
+
+          <div style={{ marginTop: "10px" }}>
+            <button
+              style={styles.btnCloseSmall}
+              onClick={() => setModoManual(false)}
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: "25px", textAlign: "center" }}>
+        <button
+          style={styles.btnCloseSmall}
+          onClick={() => {
+            setMostrarModalRenovar(false);
+            setModoManual(false);
+          }}
+        >
+          Cerrar
+        </button>
       </div>
 
     </div>
