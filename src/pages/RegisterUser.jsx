@@ -43,14 +43,54 @@ function RegisterUser() {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "telefono") {
+      const soloNumeros = value.replace(/\D/g, "").slice(0, 10);
+      setForm({ ...form, telefono: soloNumeros });
+      return;
+    }
+
+    if (name === "nombre" || name === "apellido") {
+      const soloLetras = value.replace(/[^a-zA-ZÁÉÍÓÚáéíóúÑñ\s]/g, "").slice(0, 40);
+      setForm({ ...form, [name]: soloLetras });
+      return;
+    }
+
+    if (name === "email") {
+      setForm({ ...form, email: value.slice(0, 60) });
+      return;
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validaciones frontend
+
+    if (!/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]{2,40}$/.test(form.nombre)) {
+      setMensaje("Nombre inválido (solo letras, mínimo 2 caracteres)");
+      return;
+    }
+
+    if (!/^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]{2,40}$/.test(form.apellido)) {
+      setMensaje("Apellido inválido (solo letras, mínimo 2 caracteres)");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.telefono)) {
+      setMensaje("El teléfono debe tener exactamente 10 dígitos numéricos");
+      return;
+    }
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setMensaje("Correo electrónico inválido");
+      return;
+    }
 
     if (!form.membresia_id) {
       setMensaje("Selecciona una membresía");
@@ -134,8 +174,10 @@ function RegisterUser() {
               value={form.nombre}
               onChange={handleChange}
               required
+              maxLength={40}
+              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,40}"
               style={styles.input}
-            />
+            />  
 
             <input
               type="text"
@@ -144,16 +186,21 @@ function RegisterUser() {
               value={form.apellido}
               onChange={handleChange}
               required
+              maxLength={40}
+              pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,40}"
               style={styles.input}
             />
 
             <input
-              type="text"
+              type="tel"
               name="telefono"
               placeholder="Teléfono"
               value={form.telefono}
               onChange={handleChange}
               required
+              maxLength={10}
+              pattern="\d{10}"
+              inputMode="numeric"
               style={styles.input}
             />
 
@@ -163,6 +210,7 @@ function RegisterUser() {
               placeholder="Correo"
               value={form.email}
               onChange={handleChange}
+              maxLength={60}
               style={styles.input}
             />
 
