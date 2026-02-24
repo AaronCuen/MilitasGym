@@ -8,6 +8,8 @@ function Users() {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
+  const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
+  const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [usuarioRenovar, setUsuarioRenovar] = useState(null);
 
   const [fechaInicioManual, setFechaInicioManual] = useState("");
@@ -132,6 +134,11 @@ const confirmarRenovacion = async (membresia_id) => {
     }
   };
 
+  const abrirModalEditar = (usuario) => {
+  setUsuarioEditando(usuario);
+  setMostrarModalEditar(true);
+};
+
   const eliminarUsuario = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
@@ -145,6 +152,32 @@ const confirmarRenovacion = async (membresia_id) => {
       alert("Error al eliminar usuario");
     }
   };
+
+  const guardarCambiosUsuario = async () => {
+  try {
+    await axios.put(
+      `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${usuarioEditando.id}`,
+      usuarioEditando,
+      { headers: authHeaders() }
+    );
+
+    alert("Usuario actualizado correctamente");
+
+    setMostrarModalEditar(false);
+
+    // refrescar lista
+    const res = await axios.get(
+      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
+      { headers: authHeaders() }
+    );
+
+    setUsuarios(res.data);
+
+  } catch (error) {
+    console.log(error.response?.data);
+    alert("Error al actualizar usuario");
+  }
+};
 
   const obtenerEstado = async (usuario_id) => {
     try {
@@ -380,6 +413,14 @@ const confirmarRenovacion = async (membresia_id) => {
 
                     <td style={{ ...styles.td, textAlign: "center" }}>
                       <div style={styles.actions}>
+
+                          <button
+                          style={styles.btnEdit}
+                          onClick={() => abrirModalEditar(u)}
+                        >
+                          Editar
+                        </button>
+
                         <button
                           style={styles.btnView}
                           onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
@@ -600,6 +641,87 @@ const confirmarRenovacion = async (membresia_id) => {
         </button>
       </div>
 
+    </div>
+  </div>
+)}
+
+  {mostrarModalEditar && usuarioEditando && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.modal}>
+      <h3>Editar Usuario</h3>
+
+      <input
+        type="text"
+        value={usuarioEditando.nombre}
+        onChange={(e) =>
+          setUsuarioEditando({
+            ...usuarioEditando,
+            nombre: e.target.value
+          })
+        }
+        style={styles.InputFilters}
+      />
+
+      <input
+        type="text"
+        value={usuarioEditando.apellido}
+        onChange={(e) =>
+          setUsuarioEditando({
+            ...usuarioEditando,
+            apellido: e.target.value
+          })
+        }
+        style={styles.InputFilters}
+      />
+
+      <input
+        type="tel"
+        value={usuarioEditando.telefono}
+        onChange={(e) =>
+          setUsuarioEditando({
+            ...usuarioEditando,
+            telefono: e.target.value
+          })
+        }
+        style={styles.InputFilters}
+      />
+
+      <input
+        type="email"
+        value={usuarioEditando.email || ""}
+        onChange={(e) =>
+          setUsuarioEditando({
+            ...usuarioEditando,
+            email: e.target.value
+          })
+        }
+        style={styles.InputFilters}
+      />
+
+      <input
+        type="date"
+        value={usuarioEditando.fecha_nacimiento || ""}
+        onChange={(e) =>
+          setUsuarioEditando({
+            ...usuarioEditando,
+            fecha_nacimiento: e.target.value
+          })
+        }
+        style={styles.InputFilters}
+      />
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+        <button style={styles.btnEdit} onClick={guardarCambiosUsuario}>
+          Guardar
+        </button>
+
+        <button
+          style={styles.btnDelete}
+          onClick={() => setMostrarModalEditar(false)}
+        >
+          Cancelar
+        </button>
+      </div>
     </div>
   </div>
 )}
@@ -922,6 +1044,14 @@ btnRenew: {
   marginTop: "30px", // 🔥 separación real del texto
   fontWeight: "600",
   display: "block",
+},
+btnEdit: {
+  backgroundColor: "#2563eb",
+  color: "white",
+  border: "none",
+  padding: "6px 10px",
+  borderRadius: "4px",
+  cursor: "pointer"
 },
 
 btnOption: {
