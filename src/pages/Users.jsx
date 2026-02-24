@@ -10,6 +10,7 @@ function Users() {
   const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
+  const [usuarioEditar, setUsuarioEditar] = useState(null);
   const [usuarioRenovar, setUsuarioRenovar] = useState(null);
 
   const [fechaInicioManual, setFechaInicioManual] = useState("");
