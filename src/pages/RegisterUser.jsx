@@ -210,14 +210,18 @@ function RegisterUser() {
               style={styles.input}
             />
 
-            <label>Fecha de nacimiento</label>
-            <input
-              type="date"
-              name="fecha_nacimiento"
-              value={form.fecha_nacimiento}
-              onChange={handleChange}
-              style={styles.input}
-            />
+            <div style={styles.fieldGroup}>
+              <label style={styles.label}>
+                Fecha de nacimiento
+              </label>
+              <input
+                type="date"
+                name="fecha_nacimiento"
+                value={form.fecha_nacimiento}
+                onChange={handleChange}
+                style={styles.input}
+              />
+            </div>
 
             <select
               name="membresia_id"
@@ -233,25 +237,35 @@ function RegisterUser() {
             </select>
 
             {/* 🔹 Campos manuales solo si selecciona "Otro" */}
-            {esManual && (
-              <>
-                <input
-                  type="date"
-                  name="fecha_inicio"
-                  value={form.fecha_inicio}
-                  onChange={handleChange}
-                  style={styles.input}
-                />
+              {esManual && (
+                <>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>
+                      Fecha de inicio
+                    </label>
+                    <input
+                      type="date"
+                      name="fecha_inicio"
+                      value={form.fecha_inicio}
+                      onChange={handleChange}
+                      style={styles.input}
+                    />
+                  </div>
 
-                <input
-                  type="date"
-                  name="fecha_fin"
-                  value={form.fecha_fin}
-                  onChange={handleChange}
-                  style={styles.input}
-                />
-              </>
-            )}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>
+                      Fecha de vencimiento
+                    </label>
+                    <input
+                      type="date"
+                      name="fecha_fin"
+                      value={form.fecha_fin}
+                      onChange={handleChange}
+                      style={styles.input}
+                    />
+                  </div>
+                </>
+              )}
 
             {imagen && (
               <img
@@ -314,6 +328,18 @@ const styles = {
   boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
   backdropFilter: "blur(2px)",
   },
+
+  fieldGroup: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px"
+},
+
+label: {
+  fontSize: "14px",
+  fontWeight: "500",
+  color: "#374151" // gris profesional
+},
 
   topTitle: {
   fontSize: "16px",
