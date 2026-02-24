@@ -457,7 +457,9 @@ const confirmarRenovacion = async (membresia_id) => {
           <div>
             <span style={styles.label}>Fecha de registro</span>
             <p style={styles.value}>
-              {usuarioSeleccionado.fecha_registro}
+              {usuarioSeleccionado.fecha_registro
+                ? new Date(usuarioSeleccionado.fecha_registro + "T00:00:00").toLocaleDateString("es-MX")
+                : "—"}
             </p>
           </div>
 
