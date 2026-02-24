@@ -12,6 +12,7 @@ function RegisterUser() {
     apellido: "",
     telefono: "",
     email: "",
+    fecha_nacimiento: "", 
     membresia_id: "",
     fecha_inicio: "",
     fecha_fin: ""
@@ -138,6 +139,7 @@ function RegisterUser() {
         apellido: "",
         telefono: "",
         email: "",
+        fecha_nacimiento: "", 
         membresia_id: "",
         fecha_inicio: "",
         fecha_fin: ""
@@ -204,6 +206,15 @@ function RegisterUser() {
               name="email"
               placeholder="Correo"
               value={form.email}
+              onChange={handleChange}
+              style={styles.input}
+            />
+
+            <label>Fecha de nacimiento</label>
+            <input
+              type="date"
+              name="fecha_nacimiento"
+              value={form.fecha_nacimiento}
               onChange={handleChange}
               style={styles.input}
             />
