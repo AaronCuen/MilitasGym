@@ -698,6 +698,30 @@ const confirmarRenovacion = async (membresia_id) => {
         style={styles.InputFilters}
       />
 
+      <label style={styles.label}>Foto (URL)</label>
+      <input
+        style={styles.InputFilters}
+        value={usuarioEditar.foto || ""}
+        onChange={(e) =>
+          setUsuarioEditar({ ...usuarioEditar, foto: e.target.value })
+        }
+      />
+      {usuarioEditar.foto && (
+  <div style={{ marginTop: "10px", textAlign: "center" }}>
+    <img
+      src={usuarioEditar.foto}
+      alt="Preview"
+      style={{
+        width: "100px",
+        height: "100px",
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "3px solid #991b1b"
+      }}
+    />
+  </div>
+)}
+
       <input
         type="date"
         value={usuarioEditando.fecha_nacimiento || ""}
