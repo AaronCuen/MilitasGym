@@ -154,7 +154,9 @@ const confirmarRenovacion = async (membresia_id) => {
       );
 
       const hoy = new Date();
-      const fechaFin = new Date(res.data.fecha_fin + "T00:00:00");
+      const fechaFin = new Date(
+        res.data.fecha_fin.split("T")[0] + "T00:00:00"
+      );
 
       return fechaFin >= hoy;
     } catch {
@@ -372,7 +374,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
                     <td style={styles.td}>
                       {u.fecha_fin
-                        ? new Date(u.fecha_fin + "T00:00:00").toLocaleDateString("es-MX")
+                        ? new Date(u.fecha_fin.split("T")[0] + "T00:00:00").toLocaleDateString("es-MX")
                         : "—"}
                     </td>
 
