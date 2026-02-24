@@ -448,13 +448,6 @@ const confirmarRenovacion = async (membresia_id) => {
           </div>
 
           <div>
-            <span style={styles.label}>Género</span>
-            <p style={styles.value}>
-              {usuarioSeleccionado.genero || "No registrado"}
-            </p>
-          </div>
-
-          <div>
             <span style={styles.label}>Fecha de registro</span>
             <p style={styles.value}>
               {usuarioSeleccionado.fecha_registro
