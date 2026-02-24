@@ -72,9 +72,11 @@ const confirmarRenovacion = async (membresia_id) => {
 
     setUsuarios(res.data);
 
-  } catch (error) {
-    alert("Error al renovar membresía");
-  }
+  }catch (error) {
+  console.log("ERROR REAL:", error.response?.data);
+  console.log("STATUS:", error.response?.status);
+  alert("Error al renovar membresía");
+}
 };
   
   const filtrarPorEstado = async (estado) => {
@@ -152,7 +154,7 @@ const confirmarRenovacion = async (membresia_id) => {
       );
 
       const hoy = new Date();
-      const fechaFin = new Date(res.data.fecha_fin);
+      const fechaFin = new Date(res.data.fecha_fin + "T00:00:00");
 
       return fechaFin >= hoy;
     } catch {
@@ -370,7 +372,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
                     <td style={styles.td}>
                       {u.fecha_fin
-                        ? new Date(u.fecha_fin).toLocaleDateString()
+                        ? new Date(u.fecha_fin + "T00:00:00").toLocaleDateString("es-MX")
                         : "—"}
                     </td>
 
@@ -460,7 +462,9 @@ const confirmarRenovacion = async (membresia_id) => {
           <div>
             <span style={styles.label}>Fecha de vencimiento</span>
             <p style={styles.value}>
-              {usuarioSeleccionado.fecha_fin}
+              {usuarioSeleccionado.fecha_fin
+                ? new Date(usuarioSeleccionado.fecha_fin + "T00:00:00").toLocaleDateString("es-MX")
+                : "—"}
             </p>
           </div>
         </div>
