@@ -10,7 +10,6 @@ function Users() {
   const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
-  const [usuarioEditar, setUsuarioEditar] = useState(null);
   const [usuarioRenovar, setUsuarioRenovar] = useState(null);
 
   const [fechaInicioManual, setFechaInicioManual] = useState("");
@@ -646,14 +645,14 @@ const confirmarRenovacion = async (membresia_id) => {
   </div>
 )}
 
-  {mostrarModalEditar && usuarioEditando && (
+{mostrarModalEditar && usuarioEditando && (
   <div style={styles.modalOverlay}>
     <div style={styles.modal}>
       <h3>Editar Usuario</h3>
 
       <input
         type="text"
-        value={usuarioEditando.nombre}
+        value={usuarioEditando.nombre || ""}
         onChange={(e) =>
           setUsuarioEditando({
             ...usuarioEditando,
@@ -665,7 +664,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
       <input
         type="text"
-        value={usuarioEditando.apellido}
+        value={usuarioEditando.apellido || ""}
         onChange={(e) =>
           setUsuarioEditando({
             ...usuarioEditando,
@@ -677,7 +676,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
       <input
         type="tel"
-        value={usuarioEditando.telefono}
+        value={usuarioEditando.telefono || ""}
         onChange={(e) =>
           setUsuarioEditando({
             ...usuarioEditando,
@@ -702,26 +701,30 @@ const confirmarRenovacion = async (membresia_id) => {
       <label style={styles.label}>Foto (URL)</label>
       <input
         style={styles.InputFilters}
-        value={usuarioEditar.foto || ""}
+        value={usuarioEditando.foto || ""}
         onChange={(e) =>
-          setUsuarioEditar({ ...usuarioEditar, foto: e.target.value })
+          setUsuarioEditando({
+            ...usuarioEditando,
+            foto: e.target.value
+          })
         }
       />
-      {usuarioEditar.foto && (
-  <div style={{ marginTop: "10px", textAlign: "center" }}>
-    <img
-      src={usuarioEditar.foto}
-      alt="Preview"
-      style={{
-        width: "100px",
-        height: "100px",
-        borderRadius: "50%",
-        objectFit: "cover",
-        border: "3px solid #991b1b"
-      }}
-    />
-  </div>
-)}
+
+      {usuarioEditando.foto && (
+        <div style={{ marginTop: "10px", textAlign: "center" }}>
+          <img
+            src={usuarioEditando.foto}
+            alt="Preview"
+            style={{
+              width: "100px",
+              height: "100px",
+              borderRadius: "50%",
+              objectFit: "cover",
+              border: "3px solid #991b1b"
+            }}
+          />
+        </div>
+      )}
 
       <input
         type="date"
