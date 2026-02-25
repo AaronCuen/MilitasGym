@@ -137,6 +137,24 @@ const confirmarRenovacion = async (membresia_id) => {
       }
 
       const fechaInicio = fechaInicioManual || fechaLocalISO();
+      const fechaRegistroUsuario = normalizarFechaInput(usuarioRenovar?.fecha_registro);
+      const fechaVencimientoActual = normalizarFechaInput(usuarioRenovar?.fecha_fin);
+
+      if (fechaRegistroUsuario && fechaInicio < fechaRegistroUsuario) {
+        alert("La fecha inicio no puede ser menor a la fecha de registro");
+        return;
+      }
+
+      if (fechaRegistroUsuario && fechaFinManual < fechaRegistroUsuario) {
+        alert("La fecha fin no puede ser menor a la fecha de registro");
+        return;
+      }
+
+      if (fechaVencimientoActual && fechaFinManual < fechaVencimientoActual) {
+        alert("La fecha fin no puede ser menor a la fecha de vencimiento actual");
+        return;
+      }
+
       if (fechaFinManual <= fechaInicio) {
         alert("La fecha fin debe ser mayor a la fecha inicio");
         return;
@@ -340,6 +358,26 @@ const confirmarRenovacion = async (membresia_id) => {
     if (hayFechaInicio && fechaFinInscripcion <= fechaInicioInscripcion) {
       alert("La fecha de vencimiento debe ser mayor a la fecha de inicio");
       return;
+    }
+
+    const fechaRegistroUsuario = normalizarFechaInput(usuarioEditando?.fecha_registro);
+    const fechaVencimientoActual = normalizarFechaInput(usuarioEditando?.fecha_fin);
+
+    if (hayFechaInicio && fechaRegistroUsuario && fechaInicioInscripcion < fechaRegistroUsuario) {
+      alert("La fecha inicio de membresia no puede ser menor a la fecha de registro");
+      return;
+    }
+
+    if (hayFechaFin && fechaRegistroUsuario && fechaFinInscripcion < fechaRegistroUsuario) {
+      alert("La fecha fin de membresia no puede ser menor a la fecha de registro");
+      return;
+    }
+
+    if (hayFechaFin && fechaVencimientoActual && fechaFinInscripcion < fechaVencimientoActual) {
+      const confirmarCambio = window.confirm(
+        "La nueva fecha de vencimiento es menor a la actual. Esto acorta la membresia. Deseas continuar?"
+      );
+      if (!confirmarCambio) return;
     }
 
     let fotoUrl = usuarioEditando.foto;
@@ -614,6 +652,24 @@ const confirmarRenovacion = async (membresia_id) => {
     ...styles.photoModal,
     ...(isMobile ? { width: "95vw", padding: "12px" } : {}),
   };
+
+  const fechaRegistroRenovacion = normalizarFechaInput(usuarioRenovar?.fecha_registro);
+  const fechaInicioManualEfectiva = fechaInicioManual || fechaLocalISO();
+  const minFechaInicioManual = fechaRegistroRenovacion || "";
+  const minFechaFinManual = [fechaInicioManualEfectiva, fechaRegistroRenovacion]
+    .filter(Boolean)
+    .sort()
+    .at(-1) || fechaInicioManualEfectiva;
+
+  const fechaRegistroEdicion = normalizarFechaInput(usuarioEditando?.fecha_registro);
+  const minFechaInicioInscripcion = fechaRegistroEdicion || "";
+  const minFechaFinInscripcion = [
+    normalizarFechaInput(usuarioEditando?.fecha_inicio_inscripcion),
+    fechaRegistroEdicion,
+  ]
+    .filter(Boolean)
+    .sort()
+    .at(-1) || "";
 
   return (
     <>
@@ -985,6 +1041,8 @@ const confirmarRenovacion = async (membresia_id) => {
             <input
               type="date"
               value={fechaInicioManual}
+              min={minFechaInicioManual || undefined}
+              max={fechaFinManual || undefined}
               onChange={(e) => setFechaInicioManual(e.target.value)}
               style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
             />
@@ -995,6 +1053,7 @@ const confirmarRenovacion = async (membresia_id) => {
             <input
               type="date"
               value={fechaFinManual}
+              min={minFechaFinManual || undefined}
               onChange={(e) => setFechaFinManual(e.target.value)}
               style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
             />
@@ -1142,6 +1201,8 @@ const confirmarRenovacion = async (membresia_id) => {
           <input
             type="date"
             value={usuarioEditando.fecha_inicio_inscripcion || ""}
+            min={minFechaInicioInscripcion || undefined}
+            max={usuarioEditando.fecha_fin_inscripcion || undefined}
             onChange={actualizarUsuarioEditando("fecha_inicio_inscripcion")}
             style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
@@ -1152,6 +1213,7 @@ const confirmarRenovacion = async (membresia_id) => {
           <input
             type="date"
             value={usuarioEditando.fecha_fin_inscripcion || ""}
+            min={minFechaFinInscripcion || undefined}
             onChange={actualizarUsuarioEditando("fecha_fin_inscripcion")}
             style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
