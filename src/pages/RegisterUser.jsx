@@ -82,6 +82,12 @@ function RegisterUser() {
       return;
     }
 
+    if (name === "email") {
+      const emailRecortado = value.slice(0, 40);
+      setForm({ ...form, email: emailRecortado });
+      return;
+    }
+
     setForm({
       ...form,
       [name]: value,
@@ -106,6 +112,43 @@ function RegisterUser() {
         setMensaje("La fecha de vencimiento debe ser mayor a la fecha de inicio");
         return;
       }
+    }
+
+    if (form.telefono && !/^\d{1,10}$/.test(form.telefono)) {
+      setMensaje("El telefono solo debe contener numeros y maximo 10 digitos");
+      return;
+    }
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setMensaje("El correo no tiene un formato valido");
+      return;
+    }
+
+    if (form.fecha_nacimiento) {
+      const hoy = new Date();
+      const fechaNacimiento = new Date(`${form.fecha_nacimiento}T00:00:00`);
+      const fechaMinima = new Date(
+        hoy.getFullYear() - 100,
+        hoy.getMonth(),
+        hoy.getDate()
+      );
+
+      if (fechaNacimiento > hoy) {
+        setMensaje("La fecha de nacimiento no puede ser futura");
+        return;
+      }
+
+      if (fechaNacimiento < fechaMinima) {
+        setMensaje("La fecha de nacimiento no puede superar los 100 anos");
+        return;
+      }
+    }
+
+    if (!form.fecha_nacimiento || !imagen) {
+      const faltantes = [];
+      if (!form.fecha_nacimiento) faltantes.push("fecha de nacimiento");
+      if (!imagen) faltantes.push("foto");
+      alert(`Aviso: no se agrego ${faltantes.join(" y ")}.`);
     }
 
     try {
@@ -211,8 +254,8 @@ function RegisterUser() {
           <form onSubmit={handleSubmit} style={styles.form}>
             <input type="text" name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} required style={inputStyle} />
             <input type="text" name="apellido" placeholder="Apellido" value={form.apellido} onChange={handleChange} required style={inputStyle} />
-            <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} required style={inputStyle} />
-            <input type="email" name="email" placeholder="Correo" value={form.email} onChange={handleChange} style={inputStyle} />
+            <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} maxLength={10} style={inputStyle} />
+            <input type="email" name="email" placeholder="Correo" value={form.email} onChange={handleChange} maxLength={40} style={inputStyle} />
 
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Fecha de nacimiento</label>

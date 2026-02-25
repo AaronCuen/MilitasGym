@@ -31,22 +31,62 @@ function RegistrarRecepcionista() {
   });
 
   const [mensaje, setMensaje] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const user = getStoredUser();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "nombre") {
+      setForm({ ...form, nombre: value.slice(0, 60) });
+      return;
+    }
+
+    if (name === "usuario") {
+      setForm({ ...form, usuario: value.slice(0, 30) });
+      return;
+    }
+
+    if (name === "password") {
+      setForm({ ...form, password: value.slice(0, 16) });
+      return;
+    }
+
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const nombre = form.nombre.trim();
+    const usuario = form.usuario.trim();
+    const password = form.password;
+
+    if (!nombre) {
+      setMensaje("El nombre es obligatorio");
+      return;
+    }
+
+    if (!usuario) {
+      setMensaje("El usuario es obligatorio");
+      return;
+    }
+
+    if (password.length < 6) {
+      setMensaje("La contrasena debe tener al menos 6 caracteres");
+      return;
+    }
 
     try {
       const token = localStorage.getItem("token");
 
       await axios.post(
         `${API_BASE_URL}/recepcionistas`,
-        form,
+        {
+          nombre,
+          usuario,
+          password,
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,9 +141,29 @@ function RegistrarRecepcionista() {
           <h2 style={styles.title}>Registrar recepcionista</h2>
 
           <form onSubmit={handleSubmit} style={styles.form}>
-            <input type="text" name="nombre" placeholder="Nombre completo" value={form.nombre} onChange={handleChange} required style={inputStyle} />
-            <input type="text" name="usuario" placeholder="Usuario" value={form.usuario} onChange={handleChange} required style={inputStyle} />
-            <input type="password" name="password" placeholder="Contrasena" value={form.password} onChange={handleChange} required style={inputStyle} />
+            <input type="text" name="nombre" placeholder="Nombre completo" value={form.nombre} onChange={handleChange} required maxLength={60} style={inputStyle} />
+            <input type="text" name="usuario" placeholder="Usuario" value={form.usuario} onChange={handleChange} required maxLength={30} style={inputStyle} />
+
+            <div style={styles.passwordWrapper}>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Contrasena"
+                value={form.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+                maxLength={16}
+                style={{ ...inputStyle, paddingRight: "58px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                style={styles.passwordToggle}
+              >
+                {showPassword ? "Ocultar" : "Ver"}
+              </button>
+            </div>
 
             <button type="submit" style={styles.button}>
               Registrar recepcionista
@@ -205,6 +265,24 @@ const styles = {
     color: "#000",
     outline: "none",
     boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)",
+  },
+
+  passwordWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  passwordToggle: {
+    position: "absolute",
+    right: "10px",
+    border: "none",
+    background: "transparent",
+    color: "#6b7280",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    padding: 0,
   },
 
   button: {
