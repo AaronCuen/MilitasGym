@@ -15,7 +15,7 @@ function Layout() {
   const isAdmin = rol === "admin";
 
   const isActive = (path) => location.pathname === path;
-  const isMobile = viewportWidth < 1024;
+  const isMobile = viewportWidth < 1200;
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -39,6 +39,17 @@ function Layout() {
     <div style={styles.app}>
       {isMobile && sidebarOpen && (
         <div style={styles.mobileOverlay} onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {isMobile && (
+        <button
+          type="button"
+          style={styles.sidebarFloatingToggle}
+          onClick={() => setSidebarOpen((prev) => !prev)}
+          aria-label={sidebarOpen ? "Cerrar menu" : "Abrir menu"}
+        >
+          {sidebarOpen ? "Cerrar" : "Menu"}
+        </button>
       )}
 
       <aside
@@ -260,6 +271,21 @@ const styles = {
     lineHeight: "1",
     padding: 0,
     zIndex: 1200,
+  },
+
+  sidebarFloatingToggle: {
+    position: "fixed",
+    left: "8px",
+    top: "76px",
+    zIndex: 1300,
+    border: "1px solid #1f2937",
+    borderRadius: "8px",
+    backgroundColor: "#111827",
+    color: "#ffffff",
+    fontSize: "12px",
+    fontWeight: "700",
+    padding: "6px 10px",
+    cursor: "pointer",
   },
 };
 

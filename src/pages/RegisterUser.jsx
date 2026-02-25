@@ -115,13 +115,20 @@ function RegisterUser() {
       return;
     }
 
+    let fechaInicioManual = form.fecha_inicio;
+    let fechaFinManual = form.fecha_fin;
+
     if (esManual) {
-      if (!form.fecha_inicio || !form.fecha_fin) {
-        setMensaje("Debes seleccionar ambas fechas");
+      if (!fechaInicioManual) {
+        setMensaje("Debes seleccionar la fecha de inicio");
         return;
       }
 
-      if (form.fecha_fin <= form.fecha_inicio) {
+      if (!fechaFinManual) {
+        fechaFinManual = fechaHoyISO();
+      }
+
+      if (fechaFinManual <= fechaInicioManual) {
         setMensaje("La fecha de vencimiento debe ser mayor a la fecha de inicio");
         return;
       }
@@ -180,6 +187,7 @@ function RegisterUser() {
       const bodyData = {
         ...form,
         membresia_id: Number(form.membresia_id),
+        fecha_fin: esManual ? fechaFinManual : form.fecha_fin,
         foto: fotoUrl,
       };
 
