@@ -817,7 +817,9 @@ const confirmarRenovacion = async (membresia_id) => {
         <div style={styles.viewInfoItem}>
           <span style={styles.editLabel}>Fecha de nacimiento</span>
           <p style={styles.viewInfoValue}>
-            {usuarioSeleccionado.fecha_nacimiento || "No registrada"}
+            {usuarioSeleccionado.fecha_nacimiento
+              ? formatearFecha(usuarioSeleccionado.fecha_nacimiento)
+              : "No registrada"}
           </p>
         </div>
 
