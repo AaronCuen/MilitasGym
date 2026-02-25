@@ -19,6 +19,7 @@ function Users() {
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalFoto, setMostrarModalFoto] = useState(false);
   const [mostrarModalRenovar, setMostrarModalRenovar] = useState(false);
   const [mostrarModalEditar, setMostrarModalEditar] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
@@ -98,13 +99,20 @@ const confirmarRenovacion = async (membresia_id) => {
     };
 
     if (membresia_id === 4) {
-      if (!fechaInicioManual || !fechaFinManual) {
-        alert("Debes seleccionar ambas fechas");
+      if (!fechaFinManual) {
+        alert("Debes seleccionar la fecha fin");
         return;
       }
 
-      data.fecha_inicio_manual = fechaInicioManual;
+      const hoy = new Date().toISOString().split("T")[0];
+      const fechaInicio = fechaInicioManual || hoy;
+
+      data.fecha_inicio_manual = fechaInicio;
       data.fecha_fin_manual = fechaFinManual;
+
+      if (!fechaInicioManual) {
+        setFechaInicioManual(fechaInicio);
+      }
     }
 
     await axios.post(
@@ -194,6 +202,7 @@ const confirmarRenovacion = async (membresia_id) => {
         withAuth()
       );
       setUsuarioSeleccionado(res.data);
+      setMostrarModalFoto(false);
       setMostrarModal(true);
     } catch {
       alert("Error al obtener información del usuario");
@@ -479,11 +488,22 @@ const confirmarRenovacion = async (membresia_id) => {
 
       <div style={styles.editAvatarWrap}>
         {usuarioSeleccionado.foto && (
-          <img
-            src={usuarioSeleccionado.foto}
-            alt="Foto del usuario"
-            style={styles.editAvatar}
-          />
+          <div style={styles.viewPhotoRow}>
+            <img
+              src={usuarioSeleccionado.foto}
+              alt="Foto del usuario"
+              style={styles.editAvatar}
+            />
+            <button
+              type="button"
+              style={styles.editBtnSecondary}
+              onMouseEnter={onButtonHoverIn}
+              onMouseLeave={onButtonHoverOut}
+              onClick={() => setMostrarModalFoto(true)}
+            >
+              Ver foto
+            </button>
+          </div>
         )}
         <h2 style={styles.profileName}>
           {usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}
@@ -539,7 +559,30 @@ const confirmarRenovacion = async (membresia_id) => {
 
         <button
           style={styles.editBtnSecondary}
-          onClick={() => setMostrarModal(false)}
+          onClick={() => {
+            setMostrarModal(false);
+            setMostrarModalFoto(false);
+          }}
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{mostrarModalFoto && usuarioSeleccionado?.foto && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.photoModal}>
+      <img
+        src={usuarioSeleccionado.foto}
+        alt="Foto ampliada"
+        style={styles.photoModalImage}
+      />
+      <div style={styles.editActions}>
+        <button
+          style={styles.editBtnSecondary}
+          onClick={() => setMostrarModalFoto(false)}
         >
           Cerrar
         </button>
@@ -549,112 +592,128 @@ const confirmarRenovacion = async (membresia_id) => {
 )}
 {mostrarModalRenovar && (
   <div style={styles.modalOverlay}>
-    <div style={styles.renewModal}>
-      
-      <div style={styles.renewHeader}>
-        <h3 style={styles.renewTitle}>Renovar Membresía</h3>
-        <p style={styles.renewSubtitle}>
-          Selecciona la duración
+    <div style={styles.editModal}>
+      <div style={styles.editHeader}>
+        <h3 style={styles.editTitle}>Renovar Membresia</h3>
+        <p style={styles.editSubtitle}>
+          Selecciona la duracion de la membresia.
         </p>
       </div>
 
       {!modoManual && (
-        <div style={styles.renewGrid}>
-
-          {/* DIA */}
+        <div style={styles.renewOptionsGrid}>
           <button
-            style={styles.renewCard}
+            style={styles.renewOptionCard}
+            onMouseEnter={onButtonHoverIn}
+            onMouseLeave={onButtonHoverOut}
             onClick={() => confirmarRenovacion(1)}
           >
-            <div style={styles.renewCardTitle}>1 Día</div>
-            <div style={styles.renewCardDesc}>Acceso por 1 día</div>
+            <span style={styles.renewOptionTitle}>1 Dia</span>
+            <span style={styles.renewOptionDesc}>Acceso por 1 dia</span>
           </button>
 
-          {/* SEMANA */}
           <button
-            style={styles.renewCard}
+            style={styles.renewOptionCard}
+            onMouseEnter={onButtonHoverIn}
+            onMouseLeave={onButtonHoverOut}
             onClick={() => confirmarRenovacion(2)}
           >
-            <div style={styles.renewCardTitle}>1 Semana</div>
-            <div style={styles.renewCardDesc}>7 días de acceso</div>
+            <span style={styles.renewOptionTitle}>1 Semana</span>
+            <span style={styles.renewOptionDesc}>7 dias de acceso</span>
           </button>
 
-          {/* MES */}
           <button
-            style={styles.renewCard}
+            style={styles.renewOptionCard}
+            onMouseEnter={onButtonHoverIn}
+            onMouseLeave={onButtonHoverOut}
             onClick={() => confirmarRenovacion(3)}
           >
-            <div style={styles.renewCardTitle}>1 Mes</div>
-            <div style={styles.renewCardDesc}>30 días de acceso</div>
+            <span style={styles.renewOptionTitle}>1 Mes</span>
+            <span style={styles.renewOptionDesc}>30 dias de acceso</span>
           </button>
 
-          {/* OTRO */}
           <button
-            style={styles.renewCard}
+            style={styles.renewOptionCard}
+            onMouseEnter={onButtonHoverIn}
+            onMouseLeave={onButtonHoverOut}
             onClick={() => setModoManual(true)}
           >
-            <div style={styles.renewCardTitle}>Otro</div>
-            <div style={styles.renewCardDesc}>Seleccionar fechas manualmente</div>
+            <span style={styles.renewOptionTitle}>Otro</span>
+            <span style={styles.renewOptionDesc}>Seleccionar fechas manualmente</span>
           </button>
-
         </div>
       )}
 
       {modoManual && (
-        <div style={{ marginTop: "20px", textAlign: "center" }}>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label>Fecha Inicio</label>
+        <div style={styles.editFormGrid}>
+          <div style={styles.editField}>
+            <label style={styles.editLabel}>
+              Fecha Inicio (vacio = hoy)
+            </label>
             <input
               type="date"
               value={fechaInicioManual}
               onChange={(e) => setFechaInicioManual(e.target.value)}
+              style={styles.editInput}
             />
           </div>
 
-          <div style={{ marginBottom: "15px" }}>
-            <label>Fecha Fin</label>
+          <div style={styles.editField}>
+            <label style={styles.editLabel}>Fecha Fin</label>
             <input
               type="date"
               value={fechaFinManual}
               onChange={(e) => setFechaFinManual(e.target.value)}
+              style={styles.editInput}
             />
           </div>
 
-          <button
-            style={styles.btnRenew}
-            onClick={() => confirmarRenovacion(4)}
-          >
-            Confirmar
-          </button>
-
-          <div style={{ marginTop: "10px" }}>
+          <div style={styles.editActions}>
             <button
-              style={styles.btnCloseSmall}
+              style={styles.editBtnPrimary}
+              onMouseEnter={onButtonHoverIn}
+              onMouseLeave={onButtonHoverOut}
+              onClick={() => confirmarRenovacion(4)}
+            >
+              Confirmar
+            </button>
+
+            <button
+              style={styles.editBtnSecondary}
               onClick={() => setModoManual(false)}
             >
               Volver
+            </button>
+
+            <button
+              style={styles.editBtnSecondary}
+              onClick={() => {
+                setMostrarModalRenovar(false);
+                setModoManual(false);
+              }}
+            >
+              Cerrar
             </button>
           </div>
         </div>
       )}
 
-      <div style={{ marginTop: "25px", textAlign: "center" }}>
-        <button
-          style={styles.btnCloseSmall}
-          onClick={() => {
-            setMostrarModalRenovar(false);
-            setModoManual(false);
-          }}
-        >
-          Cerrar
-        </button>
-      </div>
-
+      {!modoManual && (
+        <div style={styles.editActions}>
+          <button
+            style={styles.editBtnSecondary}
+            onClick={() => {
+              setMostrarModalRenovar(false);
+              setModoManual(false);
+            }}
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
     </div>
   </div>
 )}
-
 {mostrarModalEditar && usuarioEditando && (
   <div style={styles.modalOverlay}>
     <div style={styles.editModal}>
@@ -1122,6 +1181,62 @@ editFormGrid: {
   gap: "12px",
 },
 
+viewPhotoRow: {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "12px",
+},
+
+photoModal: {
+  backgroundColor: "#ffffff",
+  width: "min(92vw, 760px)",
+  maxHeight: "88vh",
+  borderRadius: "14px",
+  border: "1px solid #e5e7eb",
+  padding: "16px",
+  boxShadow: "0 20px 45px rgba(0,0,0,0.28)",
+  overflow: "auto",
+},
+
+photoModalImage: {
+  display: "block",
+  width: "100%",
+  maxHeight: "72vh",
+  objectFit: "contain",
+  borderRadius: "10px",
+  backgroundColor: "#f9fafb",
+},
+
+renewOptionsGrid: {
+  display: "grid",
+  gap: "10px",
+},
+
+renewOptionCard: {
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
+  borderRadius: "10px",
+  padding: "12px",
+  textAlign: "left",
+  display: "flex",
+  flexDirection: "column",
+  gap: "3px",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+},
+
+renewOptionTitle: {
+  fontSize: "15px",
+  fontWeight: "600",
+  color: "#111827",
+},
+
+renewOptionDesc: {
+  fontSize: "13px",
+  color: "#6b7280",
+},
+
 viewInfoGrid: {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
@@ -1426,5 +1541,6 @@ estadoInactivo: {
 };
 
 export default Users;
+
 
 
