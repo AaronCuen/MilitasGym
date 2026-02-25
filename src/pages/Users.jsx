@@ -130,11 +130,6 @@ const confirmarRenovacion = async (membresia_id) => {
       return;
     }
 
-    const data = {
-      usuario_id: usuarioRenovar.id,
-      membresia_id
-    };
-
     if (membresia_id === 4) {
       if (!fechaFinManual) {
         alert("Debes seleccionar la fecha fin");
@@ -147,21 +142,31 @@ const confirmarRenovacion = async (membresia_id) => {
         return;
       }
 
-      data.fecha_inicio_manual = fechaInicio;
-      data.fecha_fin_manual = fechaFinManual;
-
       if (!fechaInicioManual) {
         setFechaInicioManual(fechaInicio);
       }
+
+      await axios.put(
+        `${API_BASE_URL}/usuarios/${usuarioRenovar.id}/inscripcion`,
+        {
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFinManual,
+          membresia_id,
+        },
+        withAuth()
+      );
+    } else {
+      await axios.post(
+        `${API_BASE_URL}/inscripciones/renovar`,
+        {
+          usuario_id: usuarioRenovar.id,
+          membresia_id,
+        },
+        withAuth()
+      );
     }
 
-    await axios.post(
-      `${API_BASE_URL}/inscripciones/renovar`,
-      data,
-      withAuth()
-    );
-
-    alert("Membresía renovada correctamente");
+    alert("Membresia renovada correctamente");
 
     setMostrarModalRenovar(false);
     setMostrarModal(false);
@@ -170,14 +175,13 @@ const confirmarRenovacion = async (membresia_id) => {
     setFechaFinManual("");
 
     await cargarUsuarios();
-
-  }catch (error) {
-  console.log("ERROR REAL:", error.response?.data);
-  console.log("STATUS:", error.response?.status);
-  alert("Error al renovar membresía");
-}
+  } catch (error) {
+    console.log("ERROR REAL:", error.response?.data);
+    console.log("STATUS:", error.response?.status);
+    alert("Error al renovar membresia");
+  }
 };
-  
+
   const filtrarPorEstado = async (estado) => {
     const nuevosFiltros = { ...filtros, estado };
     setFiltros(nuevosFiltros);
@@ -256,14 +260,19 @@ const confirmarRenovacion = async (membresia_id) => {
 
   const abrirModalEditar = async (usuario) => {
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/usuarios/${usuario.id}`,
-        withAuth()
-      );
+      const [resUsuario, resInscripcion] = await Promise.all([
+        axios.get(`${API_BASE_URL}/usuarios/${usuario.id}`, withAuth()),
+        axios.get(`${API_BASE_URL}/inscripcion/${usuario.id}`, withAuth()).catch(() => null),
+      ]);
 
-      console.log("Usuario completo:", res.data); // opcional para debug
+      const inscripcion = resInscripcion?.data || null;
 
-      setUsuarioEditando(res.data);
+      setUsuarioEditando({
+        ...resUsuario.data,
+        fecha_inicio_inscripcion: normalizarFechaInput(inscripcion?.fecha_inicio),
+        fecha_fin_inscripcion: normalizarFechaInput(inscripcion?.fecha_fin),
+        membresia_id: inscripcion?.membresia_id || 4,
+      });
       setImagenEditar(null);
       setMostrarModalEditar(true);
 
@@ -313,6 +322,26 @@ const confirmarRenovacion = async (membresia_id) => {
       return;
     }
 
+    const fechaInicioInscripcion = normalizarFechaInput(
+      usuarioEditando?.fecha_inicio_inscripcion
+    );
+    const fechaFinInscripcion = normalizarFechaInput(
+      usuarioEditando?.fecha_fin_inscripcion
+    );
+
+    const hayFechaInicio = Boolean(fechaInicioInscripcion);
+    const hayFechaFin = Boolean(fechaFinInscripcion);
+
+    if (hayFechaInicio !== hayFechaFin) {
+      alert("Para editar membresia, debes completar fecha inicio y fecha fin");
+      return;
+    }
+
+    if (hayFechaInicio && fechaFinInscripcion <= fechaInicioInscripcion) {
+      alert("La fecha de vencimiento debe ser mayor a la fecha de inicio");
+      return;
+    }
+
     let fotoUrl = usuarioEditando.foto;
 
     if (imagenEditar) {
@@ -331,6 +360,18 @@ const confirmarRenovacion = async (membresia_id) => {
       },
       withAuth()
     );
+
+    if (hayFechaInicio && hayFechaFin) {
+      await axios.put(
+        `${API_BASE_URL}/usuarios/${usuarioEditando.id}/inscripcion`,
+        {
+          fecha_inicio: fechaInicioInscripcion,
+          fecha_fin: fechaFinInscripcion,
+          membresia_id: Number(usuarioEditando?.membresia_id) || 4,
+        },
+        withAuth()
+      );
+    }
 
     alert("Usuario actualizado correctamente");
 
@@ -525,21 +566,17 @@ const confirmarRenovacion = async (membresia_id) => {
   const actionThStyle = {
     ...thStyle,
     textAlign: "center",
-    width: isMobile ? "160px" : "230px",
+    width: isMobile ? "170px" : "190px",
   };
   const actionTdStyle = {
     ...tdStyle,
     textAlign: "center",
-    width: isMobile ? "160px" : "230px",
+    width: isMobile ? "170px" : "190px",
   };
   const rowActionsStyle = {
     ...styles.actions,
     flexWrap: isMobile ? "wrap" : "nowrap",
     gap: "8px",
-  };
-  const rowEditBtnStyle = {
-    ...styles.btnEdit,
-    ...(isCompactFilters ? { padding: "6px 10px" } : {}),
   };
   const rowViewBtnStyle = {
     ...styles.btnView,
@@ -736,15 +773,6 @@ const confirmarRenovacion = async (membresia_id) => {
                       <div style={rowActionsStyle}>
 
                         <button
-                          style={rowEditBtnStyle}
-                          onMouseEnter={onButtonHoverIn}
-                          onMouseLeave={onButtonHoverOut}
-                          onClick={() => abrirModalEditar(u)}
-                        >
-                          Editar
-                        </button>
-
-                        <button
                           style={rowViewBtnStyle}
                           onMouseEnter={onButtonHoverIn}
                           onMouseLeave={onButtonHoverOut}
@@ -839,6 +867,19 @@ const confirmarRenovacion = async (membresia_id) => {
       </div>
 
       <div style={modalActionsStyle}>
+        <button
+          style={modalSecondaryBtnStyle}
+          onMouseEnter={onButtonHoverIn}
+          onMouseLeave={onButtonHoverOut}
+          onClick={async () => {
+            setMostrarModal(false);
+            setMostrarModalFoto(false);
+            await abrirModalEditar(usuarioSeleccionado);
+          }}
+        >
+          Editar
+        </button>
+
         <button
           style={modalPrimaryBtnStyle}
           onMouseEnter={onButtonHoverIn}
@@ -1092,6 +1133,26 @@ const confirmarRenovacion = async (membresia_id) => {
             type="date"
             value={usuarioEditando.fecha_nacimiento || ""}
             onChange={actualizarUsuarioEditando("fecha_nacimiento")}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
+          />
+        </div>
+
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Fecha inicio membresia</label>
+          <input
+            type="date"
+            value={usuarioEditando.fecha_inicio_inscripcion || ""}
+            onChange={actualizarUsuarioEditando("fecha_inicio_inscripcion")}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
+          />
+        </div>
+
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Fecha vencimiento membresia</label>
+          <input
+            type="date"
+            value={usuarioEditando.fecha_fin_inscripcion || ""}
+            onChange={actualizarUsuarioEditando("fecha_fin_inscripcion")}
             style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
@@ -1881,3 +1942,4 @@ estadoInactivo: {
 };
 
 export default Users;
+
