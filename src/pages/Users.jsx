@@ -90,6 +90,29 @@ function Users() {
     return new Date(`${valor}T00:00:00`).toLocaleDateString("es-MX");
   };
 
+  const fechaLocalISO = () => {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const normalizarFechaInput = (fecha) => {
+    if (!fecha) return "";
+    return fecha.includes("T") ? fecha.split("T")[0] : fecha;
+  };
+
+  const abrirModalRenovar = (usuario) => {
+    const fechaVencimiento = normalizarFechaInput(usuario?.fecha_fin);
+    const fechaPorDefecto = fechaVencimiento || fechaLocalISO();
+
+    setUsuarioRenovar(usuario);
+    setFechaInicioManual("");
+    setFechaFinManual(fechaPorDefecto);
+    setModoManual(false);
+    setMostrarModalRenovar(true);
+  };
 const confirmarRenovacion = async (membresia_id) => {
   try {
 
@@ -104,8 +127,7 @@ const confirmarRenovacion = async (membresia_id) => {
         return;
       }
 
-      const hoy = new Date().toISOString().split("T")[0];
-      const fechaInicio = fechaInicioManual || hoy;
+      const fechaInicio = fechaInicioManual || fechaLocalISO();
 
       data.fecha_inicio_manual = fechaInicio;
       data.fecha_fin_manual = fechaFinManual;
@@ -549,10 +571,7 @@ const confirmarRenovacion = async (membresia_id) => {
           style={styles.editBtnPrimary}
           onMouseEnter={onButtonHoverIn}
           onMouseLeave={onButtonHoverOut}
-          onClick={() => {
-            setUsuarioRenovar(usuarioSeleccionado);
-            setMostrarModalRenovar(true);
-          }}
+          onClick={() => abrirModalRenovar(usuarioSeleccionado)}
         >
           Renovar
         </button>
@@ -1541,6 +1560,8 @@ estadoInactivo: {
 };
 
 export default Users;
+
+
 
 
 
