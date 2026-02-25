@@ -1,9 +1,21 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+
+const API_BASE_URL = "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io";
+const INITIAL_FILTROS = {
+  id: "",
+  nombre: "",
+  fecha_inicio: "",
+  fecha_fin: "",
+  estado: "todos",
+};
 
 function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const fileInputRef = useRef(null);
+  const [imagenEditar, setImagenEditar] = useState(null);
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -17,13 +29,7 @@ function Users() {
   const [modoManual, setModoManual] = useState(false);
 
 
-  const [filtros, setFiltros] = useState({
-    id: "",
-    nombre: "",
-    fecha_inicio: "",
-    fecha_fin: "",
-    estado: "todos",
-  });
+  const [filtros, setFiltros] = useState(INITIAL_FILTROS);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -33,6 +39,54 @@ function Users() {
     return {
       Authorization: `Bearer ${token}`,
     };
+  };
+
+  const withAuth = () => ({ headers: authHeaders() });
+
+  const cargarUsuarios = async () => {
+    const res = await axios.get(
+      `${API_BASE_URL}/usuarios-con-membresia`,
+      withAuth()
+    );
+    setUsuarios(res.data);
+  };
+
+  const onButtonHoverIn = (e) => {
+    e.currentTarget.style.opacity = "0.85";
+  };
+
+  const onButtonHoverOut = (e) => {
+    e.currentTarget.style.opacity = "1";
+  };
+
+  const onCloseHoverIn = (e) => {
+    e.currentTarget.style.color = "#111827";
+  };
+
+  const onCloseHoverOut = (e) => {
+    e.currentTarget.style.color = "#6b7280";
+  };
+
+  const actualizarUsuarioEditando = (campo) => (e) => {
+    const { value } = e.target;
+    setUsuarioEditando((prev) => ({
+      ...prev,
+      [campo]: value,
+    }));
+  };
+
+  const actualizarFiltro = (campo) => (e) => {
+    const { value } = e.target;
+    setFiltros((prev) => ({
+      ...prev,
+      [campo]: value,
+    }));
+  };
+
+  const formatearFecha = (fecha, usarSplit = false) => {
+    if (!fecha) return "â€”";
+    const valor = usarSplit ? fecha.split("T")[0] : fecha;
+    return new Date(`${valor}T00:00:00`).toLocaleDateString("es-MX");
   };
 
 const confirmarRenovacion = async (membresia_id) => {
@@ -54,9 +108,9 @@ const confirmarRenovacion = async (membresia_id) => {
     }
 
     await axios.post(
-      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripciones/renovar",
+      `${API_BASE_URL}/inscripciones/renovar`,
       data,
-      { headers: authHeaders() }
+      withAuth()
     );
 
     alert("Membresía renovada correctamente");
@@ -67,12 +121,7 @@ const confirmarRenovacion = async (membresia_id) => {
     setFechaInicioManual("");
     setFechaFinManual("");
 
-    const res = await axios.get(
-      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
-      { headers: authHeaders() }
-    );
-
-    setUsuarios(res.data);
+    await cargarUsuarios();
 
   }catch (error) {
   console.log("ERROR REAL:", error.response?.data);
@@ -88,10 +137,10 @@ const confirmarRenovacion = async (membresia_id) => {
     setLoading(true);
 
     const res = await axios.get(
-      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/filtrar-con-membresia",
+      `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
       {
         params: nuevosFiltros,
-        headers: authHeaders(),
+        ...withAuth(),
       }
     );
 
@@ -120,12 +169,29 @@ const confirmarRenovacion = async (membresia_id) => {
     setLoading(false);
   };
 
+  const subirImagenCloudinary = async () => {
+  if (!imagenEditar) return usuarioEditando.foto || null;
 
+  const formData = new FormData();
+  formData.append("file", imagenEditar);
+  formData.append("upload_preset", "ml_default");
+
+  const res = await fetch(
+    "https://api.cloudinary.com/v1_1/dqrdrnznk/image/upload",
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  const data = await res.json();
+  return data.secure_url;
+};
   const verUsuario = async (id) => {
     try {
       const res = await axios.get(
-        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`,
-        { headers: authHeaders() }
+        `${API_BASE_URL}/usuarios/${id}`,
+        withAuth()
       );
       setUsuarioSeleccionado(res.data);
       setMostrarModal(true);
@@ -134,20 +200,33 @@ const confirmarRenovacion = async (membresia_id) => {
     }
   };
 
-  const abrirModalEditar = (usuario) => {
-  setUsuarioEditando(usuario);
-  setMostrarModalEditar(true);
-};
+  const abrirModalEditar = async (usuario) => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/usuarios/${usuario.id}`,
+        withAuth()
+      );
+
+      console.log("Usuario completo:", res.data); // opcional para debug
+
+      setUsuarioEditando(res.data);
+      setImagenEditar(null);
+      setMostrarModalEditar(true);
+
+    } catch (error) {
+      alert("Error al cargar datos del usuario");
+    }
+  };
 
   const eliminarUsuario = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
     try {
       await axios.delete(
-        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`,
-        { headers: authHeaders() }
+        `${API_BASE_URL}/usuarios/${id}`,
+        withAuth()
       );
-      setUsuarios(usuarios.filter((u) => u.id !== id));
+      setUsuarios((prev) => prev.filter((u) => u.id !== id));
     } catch {
       alert("Error al eliminar usuario");
     }
@@ -155,23 +234,28 @@ const confirmarRenovacion = async (membresia_id) => {
 
   const guardarCambiosUsuario = async () => {
   try {
+
+    let fotoUrl = usuarioEditando.foto;
+
+    if (imagenEditar) {
+      fotoUrl = await subirImagenCloudinary();
+    }
+
     await axios.put(
-      `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${usuarioEditando.id}`,
-      usuarioEditando,
-      { headers: authHeaders() }
+      `${API_BASE_URL}/usuarios/${usuarioEditando.id}`,
+      {
+        ...usuarioEditando,
+        foto: fotoUrl
+      },
+      withAuth()
     );
 
     alert("Usuario actualizado correctamente");
 
     setMostrarModalEditar(false);
+    setImagenEditar(null);
 
-    // refrescar lista
-    const res = await axios.get(
-      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia",
-      { headers: authHeaders() }
-    );
-
-    setUsuarios(res.data);
+    await cargarUsuarios();
 
   } catch (error) {
     console.log(error.response?.data);
@@ -179,83 +263,29 @@ const confirmarRenovacion = async (membresia_id) => {
   }
 };
 
-  const obtenerEstado = async (usuario_id) => {
-    try {
-      const res = await axios.get(
-        `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripcion/${usuario_id}`,
-        { headers: authHeaders() }
-      );
-
-      const hoy = new Date();
-      const fechaFin = new Date(
-        res.data.fecha_fin.split("T")[0] + "T00:00:00"
-      );
-
-      return fechaFin >= hoy;
-    } catch {
-      return false;
-    }
-  };
-
-  const limpiarFiltros = () => {
-    setFiltros({
-      id: "",
-      nombre: "",
-      fecha_inicio: "",
-      fecha_fin: "",
-      estado: "todos",
-    });
-
-    axios
-      .get("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia", {
-        headers: authHeaders(),
-      })
-      .then((res) => setUsuarios(res.data));
+  const limpiarFiltros = async () => {
+    setFiltros(INITIAL_FILTROS);
+    await cargarUsuarios();
   };
 
   const buscarUsuarios = async () => {
     setLoading(true);
 
     const res = await axios.get(
-      "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/filtrar-con-membresia",
+      `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
       {
         params: filtros,
-        headers: authHeaders(),
+        ...withAuth(),
       }
     );
 
-    let data = res.data;
-
-    if (filtros.estado !== "todos") {
-      const filtrados = [];
-
-      for (const u of data) {
-        const activo = await obtenerEstado(u.id);
-
-       /* if (
-          (filtros.estado === "activo" && activo) ||
-          (filtros.estado === "inactivo" && !activo)
-        ) */{
-          filtrados.push(u);
-        }
-      }
-
-      data = filtrados;
-    }
-
-    setUsuarios(data);
+    setUsuarios(res.data);
     setLoading(false);
   };
 
   useEffect(() => {
-    axios
-      .get("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios-con-membresia", {
-        headers: authHeaders(),
-      })
-      .then((res) => {
-        setUsuarios(res.data);
-        setLoading(false);
-      })
+    cargarUsuarios()
+      .then(() => setLoading(false))
       .catch(() => {
         setLoading(false);
       });
@@ -281,18 +311,14 @@ const confirmarRenovacion = async (membresia_id) => {
               style={styles.InputFilters}
               placeholder="ID"
               value={filtros.id}
-              onChange={(e) =>
-                setFiltros({ ...filtros, id: e.target.value })
-              }
+              onChange={actualizarFiltro("id")}
             />
 
             <input
               style={styles.InputFilters}
               placeholder="Nombre"
               value={filtros.nombre}
-              onChange={(e) =>
-                setFiltros({ ...filtros, nombre: e.target.value })
-              }
+              onChange={actualizarFiltro("nombre")}
             />
 
             <div style={styles.dateGroup}>
@@ -300,9 +326,7 @@ const confirmarRenovacion = async (membresia_id) => {
               <input
                 type="date"
                 style={styles.InputFilters}
-                onChange={(e) =>
-                  setFiltros({ ...filtros, fecha_inicio: e.target.value })
-                }
+                onChange={actualizarFiltro("fecha_inicio")}
               />
             </div>
 
@@ -311,9 +335,7 @@ const confirmarRenovacion = async (membresia_id) => {
               <input
                 type="date"
                 style={styles.InputFilters}
-                onChange={(e) =>
-                  setFiltros({ ...filtros, fecha_fin: e.target.value })
-                }
+                onChange={actualizarFiltro("fecha_fin")}
               />
             </div>
 
@@ -406,16 +428,16 @@ const confirmarRenovacion = async (membresia_id) => {
                     </td>
 
                     <td style={styles.td}>
-                      {u.fecha_fin
-                        ? new Date(u.fecha_fin.split("T")[0] + "T00:00:00").toLocaleDateString("es-MX")
-                        : "—"}
+                      {formatearFecha(u.fecha_fin, true)}
                     </td>
 
                     <td style={{ ...styles.td, textAlign: "center" }}>
                       <div style={styles.actions}>
 
-                          <button
+                        <button
                           style={styles.btnEdit}
+                          onMouseEnter={onButtonHoverIn}
+                          onMouseLeave={onButtonHoverOut}
                           onClick={() => abrirModalEditar(u)}
                         >
                           Editar
@@ -423,16 +445,16 @@ const confirmarRenovacion = async (membresia_id) => {
 
                         <button
                           style={styles.btnView}
-                          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-                          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                          onMouseEnter={onButtonHoverIn}
+                          onMouseLeave={onButtonHoverOut}
                           onClick={() => verUsuario(u.id)}
                         >
                           Ver
                         </button>
                         <button
                           style={styles.btnDelete}
-                          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-                          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                          onMouseEnter={onButtonHoverIn}
+                          onMouseLeave={onButtonHoverOut}
                           onClick={() => eliminarUsuario(u.id)}
                         >
                           Eliminar
@@ -449,94 +471,82 @@ const confirmarRenovacion = async (membresia_id) => {
 
 {mostrarModal && usuarioSeleccionado && (
   <div style={styles.modalOverlay}>
-    <div style={styles.modal}>
-      <div style={styles.modalContent}>
+    <div style={styles.editModal}>
+      <div style={styles.editHeader}>
+        <h3 style={styles.editTitle}>Detalle de Usuario</h3>
+        <p style={styles.editSubtitle}>Informacion del perfil y membresia.</p>
+      </div>
 
+      <div style={styles.editAvatarWrap}>
         {usuarioSeleccionado.foto && (
-          <div style={styles.profileHeader}>
-            <img
-              src={usuarioSeleccionado.foto}
-              alt="Foto del usuario"
-              style={styles.profileImage}
-            />
-            <div>
-              <h2 style={styles.profileName}>
-                {usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}
-              </h2>
-              <p style={styles.profileEmail}>
-                {usuarioSeleccionado.email}
-              </p>
-            </div>
-          </div>
+          <img
+            src={usuarioSeleccionado.foto}
+            alt="Foto del usuario"
+            style={styles.editAvatar}
+          />
         )}
+        <h2 style={styles.profileName}>
+          {usuarioSeleccionado.nombre} {usuarioSeleccionado.apellido}
+        </h2>
+        <p style={styles.profileEmail}>{usuarioSeleccionado.email}</p>
+      </div>
 
-        <div style={styles.profileGrid}>
-          <div>
-            <span style={styles.label}>ID</span>
-            <p style={styles.value}>{usuarioSeleccionado.id}</p>
-          </div>
-
-          <div>
-            <span style={styles.label}>Teléfono</span>
-            <p style={styles.value}>{usuarioSeleccionado.telefono}</p>
-          </div>
-
-          <div>
-            <span style={styles.label}>Fecha de nacimiento</span>
-            <p style={styles.value}>
-              {usuarioSeleccionado.fecha_nacimiento || "No registrada"}
-            </p>
-          </div>
-
-          <div>
-            <span style={styles.label}>Fecha de registro</span>
-            <p style={styles.value}>
-              {usuarioSeleccionado.fecha_registro
-                ? new Date(usuarioSeleccionado.fecha_registro + "T00:00:00").toLocaleDateString("es-MX")
-                : "—"}
-            </p>
-          </div>
-
-          <div>
-            <span style={styles.label}>Fecha de vencimiento</span>
-            <p style={styles.value}>
-              {usuarioSeleccionado.fecha_fin
-                ? new Date(usuarioSeleccionado.fecha_fin + "T00:00:00").toLocaleDateString("es-MX")
-                : "—"}
-            </p>
-          </div>
+      <div style={styles.viewInfoGrid}>
+        <div style={styles.viewInfoItem}>
+          <span style={styles.editLabel}>ID</span>
+          <p style={styles.viewInfoValue}>{usuarioSeleccionado.id}</p>
         </div>
 
-        {/* BOTÓN RENOVAR */}
-        <div style={styles.modalButtons}>
-          <button
-            style={styles.btnRenew}
-            onClick={() => {
-              setUsuarioRenovar(usuarioSeleccionado);
-              setMostrarModalRenovar(true);
-            }}
-          >
-            Renovar
-          </button>
+        <div style={styles.viewInfoItem}>
+          <span style={styles.editLabel}>Telefono</span>
+          <p style={styles.viewInfoValue}>{usuarioSeleccionado.telefono}</p>
         </div>
 
-        {/* BOTÓN CERRAR PEQUEÑO CENTRADO */}
-        <div style={styles.modalCloseContainer}>
-          <button
-            style={styles.btnCloseSmall}
-            onClick={() => setMostrarModal(false)}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#111827")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
-          >
-            Cerrar
-          </button>
+        <div style={styles.viewInfoItem}>
+          <span style={styles.editLabel}>Fecha de nacimiento</span>
+          <p style={styles.viewInfoValue}>
+            {usuarioSeleccionado.fecha_nacimiento || "No registrada"}
+          </p>
         </div>
 
+        <div style={styles.viewInfoItem}>
+          <span style={styles.editLabel}>Fecha de registro</span>
+          <p style={styles.viewInfoValue}>
+            {formatearFecha(usuarioSeleccionado.fecha_registro)}
+          </p>
+        </div>
+
+        <div style={styles.viewInfoItem}>
+          <span style={styles.editLabel}>Fecha de vencimiento</span>
+          <p style={styles.viewInfoValue}>
+            {formatearFecha(usuarioSeleccionado.fecha_fin)}
+          </p>
+        </div>
+      </div>
+
+      <div style={styles.editActions}>
+        <button
+          style={styles.editBtnPrimary}
+          onMouseEnter={onButtonHoverIn}
+          onMouseLeave={onButtonHoverOut}
+          onClick={() => {
+            setUsuarioRenovar(usuarioSeleccionado);
+            setMostrarModalRenovar(true);
+          }}
+        >
+          Renovar
+        </button>
+
+        <button
+          style={styles.editBtnSecondary}
+          onClick={() => setMostrarModal(false)}
+        >
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
 )}
-
 {mostrarModalRenovar && (
   <div style={styles.modalOverlay}>
     <div style={styles.renewModal}>
@@ -647,104 +657,108 @@ const confirmarRenovacion = async (membresia_id) => {
 
 {mostrarModalEditar && usuarioEditando && (
   <div style={styles.modalOverlay}>
-    <div style={styles.modal}>
-      <h3>Editar Usuario</h3>
+    <div style={styles.editModal}>
+      <div style={styles.editHeader}>
+        <h3 style={styles.editTitle}>Editar Usuario</h3>
+        <p style={styles.editSubtitle}>Actualiza la información del perfil.</p>
+      </div>
 
-      <input
-        type="text"
-        value={usuarioEditando.nombre || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            nombre: e.target.value
-          })
-        }
-        style={styles.InputFilters}
-      />
-
-      <input
-        type="text"
-        value={usuarioEditando.apellido || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            apellido: e.target.value
-          })
-        }
-        style={styles.InputFilters}
-      />
-
-      <input
-        type="tel"
-        value={usuarioEditando.telefono || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            telefono: e.target.value
-          })
-        }
-        style={styles.InputFilters}
-      />
-
-      <input
-        type="email"
-        value={usuarioEditando.email || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            email: e.target.value
-          })
-        }
-        style={styles.InputFilters}
-      />
-
-      <label style={styles.label}>Foto (URL)</label>
-      <input
-        style={styles.InputFilters}
-        value={usuarioEditando.foto || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            foto: e.target.value
-          })
-        }
-      />
-
-      {usuarioEditando.foto && (
-        <div style={{ marginTop: "10px", textAlign: "center" }}>
+      <div style={styles.editAvatarWrap}>
+        {(imagenEditar || usuarioEditando?.foto) && (
           <img
-            src={usuarioEditando.foto}
+            src={
+              imagenEditar
+                ? URL.createObjectURL(imagenEditar)
+                : usuarioEditando.foto
+            }
             alt="Preview"
-            style={{
-              width: "100px",
-              height: "100px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              border: "3px solid #991b1b"
-            }}
+            style={styles.editAvatar}
+          />
+        )}
+
+        <button
+          type="button"
+          style={styles.changePhotoBtn}
+          onMouseEnter={onButtonHoverIn}
+          onMouseLeave={onButtonHoverOut}
+          onClick={() => fileInputRef.current.click()}
+        >
+          Cambiar Foto
+        </button>
+
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={(e) => setImagenEditar(e.target.files[0])}
+          style={{ display: "none" }}
+        />
+      </div>
+
+      <div style={styles.editFormGrid}>
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Nombre</label>
+          <input
+            type="text"
+            value={usuarioEditando.nombre || ""}
+            onChange={actualizarUsuarioEditando("nombre")}
+            style={styles.editInput}
           />
         </div>
-      )}
 
-      <input
-        type="date"
-        value={usuarioEditando.fecha_nacimiento || ""}
-        onChange={(e) =>
-          setUsuarioEditando({
-            ...usuarioEditando,
-            fecha_nacimiento: e.target.value
-          })
-        }
-        style={styles.InputFilters}
-      />
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Apellido</label>
+          <input
+            type="text"
+            value={usuarioEditando.apellido || ""}
+            onChange={actualizarUsuarioEditando("apellido")}
+            style={styles.editInput}
+          />
+        </div>
 
-      <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-        <button style={styles.btnEdit} onClick={guardarCambiosUsuario}>
-          Guardar
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Teléfono</label>
+          <input
+            type="tel"
+            value={usuarioEditando.telefono || ""}
+            onChange={actualizarUsuarioEditando("telefono")}
+            style={styles.editInput}
+          />
+        </div>
+
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Correo</label>
+          <input
+            type="email"
+            value={usuarioEditando.email || ""}
+            onChange={actualizarUsuarioEditando("email")}
+            style={styles.editInput}
+          />
+        </div>
+
+        <div style={styles.editField}>
+          <label style={styles.editLabel}>Fecha de Nacimiento</label>
+          <input
+            type="date"
+            value={usuarioEditando.fecha_nacimiento || ""}
+            onChange={actualizarUsuarioEditando("fecha_nacimiento")}
+            style={styles.editInput}
+          />
+        </div>
+      </div>
+
+      <div style={styles.editActions}>
+        <button
+          style={styles.editBtnPrimary}
+          onMouseEnter={onButtonHoverIn}
+          onMouseLeave={onButtonHoverOut}
+          onClick={guardarCambiosUsuario}
+        >
+          Guardar Cambios
         </button>
 
         <button
-          style={styles.btnDelete}
+          style={styles.editBtnSecondary}
           onClick={() => setMostrarModalEditar(false)}
         >
           Cancelar
@@ -874,11 +888,11 @@ btnCloseSmall: {
     outline: "none",
     boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)"
   },
-    tableContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: "16px",
-    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.08)",
-    border: "1px solid #f1f5f9",
+  tableContainer: {
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    boxShadow: "none",
+    border: "none",
   },
 
   FilersRow: {
@@ -1042,6 +1056,147 @@ modal: {
   textAlign: "justify",
 },
 
+editModal: {
+  background: "#ffffff",
+  width: "560px",
+  maxWidth: "92vw",
+  maxHeight: "88vh",
+  overflowY: "auto",
+  borderRadius: "14px",
+  border: "1px solid #e5e7eb",
+  boxShadow: "0 20px 45px rgba(0,0,0,0.28)",
+  padding: "24px",
+  color: "#111827",
+},
+
+editHeader: {
+  marginBottom: "18px",
+},
+
+editTitle: {
+  margin: 0,
+  fontSize: "22px",
+  fontWeight: "700",
+  color: "#111827",
+},
+
+editSubtitle: {
+  margin: "6px 0 0 0",
+  fontSize: "13px",
+  color: "#6b7280",
+},
+
+editAvatarWrap: {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "10px",
+  marginBottom: "18px",
+  paddingBottom: "18px",
+  borderBottom: "1px solid #e5e7eb",
+},
+
+editAvatar: {
+  width: "112px",
+  height: "112px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "3px solid #991b1b",
+  boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+},
+
+changePhotoBtn: {
+  backgroundColor: "#16a34a",
+  color: "#ffffff",
+  border: "none",
+  padding: "8px 14px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "600",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+},
+
+editFormGrid: {
+  display: "grid",
+  gap: "12px",
+},
+
+viewInfoGrid: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "12px",
+},
+
+viewInfoItem: {
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
+  borderRadius: "10px",
+  padding: "10px 12px",
+},
+
+viewInfoValue: {
+  margin: "4px 0 0 0",
+  fontSize: "14px",
+  color: "#111827",
+  fontWeight: "500",
+},
+
+editField: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+},
+
+editLabel: {
+  fontSize: "12px",
+  fontWeight: "600",
+  color: "#374151",
+},
+
+editInput: {
+  width: "100%",
+  padding: "11px 12px",
+  fontSize: "14px",
+  borderRadius: "8px",
+  border: "1px solid #d1d5db",
+  backgroundColor: "#f9fafb",
+  color: "#111827",
+  outline: "none",
+},
+
+editActions: {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "10px",
+  marginTop: "18px",
+  paddingTop: "16px",
+  borderTop: "1px solid #e5e7eb",
+},
+
+editBtnPrimary: {
+  backgroundColor: "#16a34a",
+  color: "#ffffff",
+  border: "none",
+  padding: "9px 14px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "600",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+},
+
+editBtnSecondary: {
+  backgroundColor: "#f3f4f6",
+  color: "#374151",
+  border: "1px solid #d1d5db",
+  padding: "9px 14px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "600",
+  cursor: "pointer",
+},
+
 btnClose: {
   marginTop: "20px",
   padding: "10px",
@@ -1074,12 +1229,15 @@ btnRenew: {
   display: "block",
 },
 btnEdit: {
-  backgroundColor: "#2563eb",
+  backgroundColor: "#16a34a",
   color: "white",
   border: "none",
-  padding: "6px 10px",
-  borderRadius: "4px",
-  cursor: "pointer"
+  padding: "6px 12px",
+  borderRadius: "8px",
+  fontSize: "13px",
+  fontWeight: "500",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
 },
 
 btnOption: {
@@ -1268,3 +1426,5 @@ estadoInactivo: {
 };
 
 export default Users;
+
+
