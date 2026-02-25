@@ -156,7 +156,8 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     boxShadow: "2px 0 10px rgba(0,0,0,0.4)",
-    overflow: "hidden",
+    overflowY: "hidden",
+    overflowX: "visible",
   },
 
   logo: {
@@ -258,6 +259,7 @@ const styles = {
     fontWeight: "700",
     lineHeight: "1",
     padding: 0,
+    zIndex: 1200,
   },
 };
 

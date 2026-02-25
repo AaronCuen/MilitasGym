@@ -26,12 +26,25 @@ function RegisterUser() {
   const [mensaje, setMensaje] = useState("");
 
   const esManual = form.membresia_id === "4";
+  const fechaHoyISO = () => {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dd = String(hoy.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    if (esManual && !form.fecha_fin) {
+      setForm((prev) => ({ ...prev, fecha_fin: fechaHoyISO() }));
+    }
+  }, [esManual, form.fecha_fin]);
 
   const previewImagen = useMemo(() => {
     if (!imagen) return "";
