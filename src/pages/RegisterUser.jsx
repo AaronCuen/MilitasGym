@@ -24,6 +24,11 @@ function RegisterUser() {
   });
 
   const [mensaje, setMensaje] = useState("");
+  const [modalRegistro, setModalRegistro] = useState({
+    abierto: false,
+    usuarioId: null,
+    nombre: "",
+  });
 
   const esManual = form.membresia_id === "4";
   const fechaHoyISO = () => {
@@ -213,7 +218,13 @@ function RegisterUser() {
         return;
       }
 
-      setMensaje(`Usuario registrado correctamente. ID asignado: ${data.usuario_id}`);
+      const nombreCompleto = `${form.nombre} ${form.apellido}`.trim();
+      setMensaje("");
+      setModalRegistro({
+        abierto: true,
+        usuarioId: data.usuario_id,
+        nombre: nombreCompleto,
+      });
 
       setForm({
         nombre: "",
@@ -235,6 +246,14 @@ function RegisterUser() {
       console.error(error);
       setMensaje("Error de servidor");
     }
+  };
+
+  const cerrarModalRegistro = () => {
+    setModalRegistro({
+      abierto: false,
+      usuarioId: null,
+      nombre: "",
+    });
   };
 
   const topbarStyle = {
@@ -326,6 +345,23 @@ function RegisterUser() {
           )}
         </div>
       </main>
+
+      {modalRegistro.abierto && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <h3 style={styles.modalTitle}>Usuario registrado correctamente</h3>
+            <p style={styles.modalText}>
+              Nombre: <strong>{modalRegistro.nombre || "No disponible"}</strong>
+            </p>
+            <p style={styles.modalText}>
+              ID asignado: <strong>{modalRegistro.usuarioId}</strong>
+            </p>
+            <button type="button" onClick={cerrarModalRegistro} style={styles.modalButton}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -452,6 +488,58 @@ const styles = {
     marginTop: "18px",
     textAlign: "center",
     fontWeight: "500",
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+    padding: "16px",
+    boxSizing: "border-box",
+  },
+
+  modalCard: {
+    width: "100%",
+    maxWidth: "420px",
+    backgroundColor: "#ffffff",
+    borderRadius: "14px",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 20px 45px rgba(0,0,0,0.28)",
+    padding: "22px",
+    textAlign: "center",
+  },
+
+  modalTitle: {
+    margin: 0,
+    marginBottom: "14px",
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  modalText: {
+    margin: "8px 0",
+    fontSize: "15px",
+    color: "#374151",
+  },
+
+  modalButton: {
+    marginTop: "16px",
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: "#1f2937",
+    color: "#ffffff",
+    fontWeight: "600",
+    cursor: "pointer",
   },
 };
 
