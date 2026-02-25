@@ -139,8 +139,8 @@ function RegisterUser() {
       }
     }
 
-    if (form.telefono && !/^\d{1,10}$/.test(form.telefono)) {
-      setMensaje("El telefono solo debe contener numeros y maximo 10 digitos");
+    if (form.telefono && !/^\d{10}$/.test(form.telefono)) {
+      setMensaje("Si agregas telefono, debe tener exactamente 10 digitos numericos");
       return;
     }
 
@@ -295,7 +295,7 @@ function RegisterUser() {
           <form onSubmit={handleSubmit} style={styles.form}>
             <input type="text" name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} required style={inputStyle} />
             <input type="text" name="apellido" placeholder="Apellido" value={form.apellido} onChange={handleChange} required style={inputStyle} />
-            <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} maxLength={10} style={inputStyle} />
+            <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} maxLength={10} inputMode="numeric" style={inputStyle} />
             <input type="email" name="email" placeholder="Correo" value={form.email} onChange={handleChange} maxLength={40} style={inputStyle} />
 
             <div style={styles.fieldGroup}>
@@ -544,3 +544,4 @@ const styles = {
 };
 
 export default RegisterUser;
+
