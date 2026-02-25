@@ -74,9 +74,21 @@ function Users() {
 
   const actualizarUsuarioEditando = (campo) => (e) => {
     const { value } = e.target;
+    let valorNormalizado = value;
+
+    if (campo === "telefono") {
+      valorNormalizado = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    if (campo === "nombre" || campo === "apellido") {
+      valorNormalizado = value
+        .replace(/[^a-zA-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00e1\u00e9\u00ed\u00f3\u00fa\u00d1\u00f1\s]/g, "")
+        .slice(0, 40);
+    }
+
     setUsuarioEditando((prev) => ({
       ...prev,
-      [campo]: value,
+      [campo]: valorNormalizado,
     }));
   };
 
@@ -282,6 +294,30 @@ const confirmarRenovacion = async (membresia_id) => {
 
   const guardarCambiosUsuario = async () => {
   try {
+    const nombre = (usuarioEditando?.nombre || "").trim();
+    const apellido = (usuarioEditando?.apellido || "").trim();
+    const telefono = (usuarioEditando?.telefono || "").trim();
+    const email = (usuarioEditando?.email || "").trim();
+
+    if (!nombre) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+
+    if (!apellido) {
+      alert("El apellido es obligatorio");
+      return;
+    }
+
+    if (telefono && !/^\d{1,10}$/.test(telefono)) {
+      alert("El telefono solo debe contener numeros (maximo 10)");
+      return;
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("El correo no tiene un formato valido");
+      return;
+    }
 
     let fotoUrl = usuarioEditando.foto;
 
@@ -293,6 +329,10 @@ const confirmarRenovacion = async (membresia_id) => {
       `${API_BASE_URL}/usuarios/${usuarioEditando.id}`,
       {
         ...usuarioEditando,
+        nombre,
+        apellido,
+        telefono,
+        email,
         foto: fotoUrl
       },
       withAuth()
@@ -1840,8 +1880,5 @@ estadoInactivo: {
 };
 
 export default Users;
-
-
-
 
 

@@ -149,6 +149,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     boxShadow: "2px 0 10px rgba(0,0,0,0.4)",
+    overflow: "hidden",
   },
 
   logo: {
@@ -170,6 +171,8 @@ const styles = {
     flexDirection: "column",
     gap: "6px",
     flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
   },
 
   sectionLabel: {
@@ -198,6 +201,11 @@ const styles = {
   logoutContainer: {
     padding: "16px",
     borderTop: "1px solid #1f2937",
+    marginTop: "auto",
+    backgroundColor: "#111827",
+    position: "sticky",
+    bottom: 0,
+    zIndex: 1,
   },
 
   logoutButton: {
