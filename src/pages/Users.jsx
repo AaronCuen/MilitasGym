@@ -33,6 +33,7 @@ function Users() {
   const [fechaInicioManual, setFechaInicioManual] = useState("");
   const [fechaFinManual, setFechaFinManual] = useState("");
   const [modoManual, setModoManual] = useState(false);
+  const [filtrosResetKey, setFiltrosResetKey] = useState(0);
 
 
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
@@ -345,7 +346,8 @@ const confirmarRenovacion = async (membresia_id) => {
 };
 
   const limpiarFiltros = async () => {
-    setFiltros(INITIAL_FILTROS);
+    setFiltros({ ...INITIAL_FILTROS });
+    setFiltrosResetKey((prev) => prev + 1);
     await cargarUsuarios();
   };
 
@@ -610,9 +612,10 @@ const confirmarRenovacion = async (membresia_id) => {
               <div style={dateGroupStyle}>
                 <label style={styles.dateLabel}>Fecha de registro</label>
                 <input
+                  key={`fecha_inicio_${filtrosResetKey}`}
                   type="date"
                   style={filterDateInputStyle}
-                  value={filtros.fecha_inicio}
+                  value={filtros.fecha_inicio || ""}
                   onChange={actualizarFiltro("fecha_inicio")}
                 />
               </div>
@@ -620,9 +623,10 @@ const confirmarRenovacion = async (membresia_id) => {
               <div style={dateGroupStyle}>
                 <label style={styles.dateLabel}>Fecha de vencimiento</label>
                 <input
+                  key={`fecha_fin_${filtrosResetKey}`}
                   type="date"
                   style={filterDateInputStyle}
-                  value={filtros.fecha_fin}
+                  value={filtros.fecha_fin || ""}
                   onChange={actualizarFiltro("fecha_fin")}
                 />
               </div>
