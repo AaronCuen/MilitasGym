@@ -612,6 +612,7 @@ const confirmarRenovacion = async (membresia_id) => {
                 <input
                   type="date"
                   style={filterDateInputStyle}
+                  value={filtros.fecha_inicio}
                   onChange={actualizarFiltro("fecha_inicio")}
                 />
               </div>
@@ -621,6 +622,7 @@ const confirmarRenovacion = async (membresia_id) => {
                 <input
                   type="date"
                   style={filterDateInputStyle}
+                  value={filtros.fecha_fin}
                   onChange={actualizarFiltro("fecha_fin")}
                 />
               </div>
