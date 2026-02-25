@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
+import { getStoredUser } from "../utils/storage";
 
 function RegisterUser() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
   const [imagen, setImagen] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
@@ -30,6 +32,19 @@ function RegisterUser() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  const previewImagen = useMemo(() => {
+    if (!imagen) return "";
+    return URL.createObjectURL(imagen);
+  }, [imagen]);
+
+  useEffect(() => {
+    return () => {
+      if (previewImagen) {
+        URL.revokeObjectURL(previewImagen);
+      }
+    };
+  }, [previewImagen]);
 
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
@@ -117,7 +132,7 @@ function RegisterUser() {
         delete bodyData.fecha_fin;
       }
 
-      const res = await fetch(`${"http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io"}/registrar_usuario`, {
+      const res = await fetch(`${API_BASE_URL}/registrar_usuario`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -226,7 +241,7 @@ function RegisterUser() {
               </>
             )}
 
-            {imagen && <img src={URL.createObjectURL(imagen)} alt="Preview" style={styles.preview} />}
+            {previewImagen && <img src={previewImagen} alt="Preview" style={styles.preview} />}
 
             <button type="button" onClick={() => fileInputRef.current.click()} style={styles.photoButton}>
               Seleccionar foto

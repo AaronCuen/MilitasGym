@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import gymImage from "../assets/Background.png";
 import blurredback from "../assets/blurredbackground.png";
 import logo from "../assets/Logo.png";
+import { API_BASE_URL } from "../config/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ function Login() {
     try {
       setLoading(true);
 
-      const res = await fetch("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/login", {
+      const res = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,7 +80,7 @@ function Login() {
       localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("rol", data.user.rol);
       navigate("/home", { replace: true });
-    } catch (error) {
+    } catch {
       setServerError("No se pudo conectar con el servidor");
     } finally {
       setLoading(false);

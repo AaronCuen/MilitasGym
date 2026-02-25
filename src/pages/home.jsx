@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { getStoredUser } from "../utils/storage";
 
 function Home() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );

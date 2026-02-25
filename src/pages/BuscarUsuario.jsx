@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config/api";
+import { getStoredUser } from "../utils/storage";
 
 function BuscarUsuario() {
   const navigate = useNavigate();
@@ -10,7 +12,7 @@ function BuscarUsuario() {
   const [id, setId] = useState("");
   const [usuario, setUsuario] = useState(null);
   const [mensaje, setMensaje] = useState("");
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -32,7 +34,7 @@ function BuscarUsuario() {
         return;
       }
 
-      const res = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -49,7 +51,7 @@ function BuscarUsuario() {
 
       setUsuario(data);
 
-      const insRes = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripcion/${id}`, {
+      const insRes = await fetch(`${API_BASE_URL}/inscripcion/${id}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -67,7 +69,7 @@ function BuscarUsuario() {
       }
 
       if (estado === "ACTIVA") {
-        const asisRes = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/asistencia/${id}`, {
+        const asisRes = await fetch(`${API_BASE_URL}/asistencia/${id}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

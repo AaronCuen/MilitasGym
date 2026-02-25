@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
+import { getStoredUser } from "../utils/storage";
 
 function RegistrarRecepcionista() {
   const navigate = useNavigate();
@@ -14,7 +16,7 @@ function RegistrarRecepcionista() {
     if (rol !== "admin") {
       navigate("/usuarios", { replace: true });
     }
-  }, []);
+  }, [navigate, rol]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -30,7 +32,7 @@ function RegistrarRecepcionista() {
 
   const [mensaje, setMensaje] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -43,7 +45,7 @@ function RegistrarRecepcionista() {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/recepcionistas",
+        `${API_BASE_URL}/recepcionistas`,
         form,
         {
           headers: {

@@ -8,13 +8,24 @@ function PrivateRoute() {
     return <Navigate to="/" />;
   }
 
+  let isTokenValid = false;
+
   try {
-    jwtDecode(token); // valida estructura y expiración
-    return <Outlet />;
-  } catch (error) {
+    const decoded = jwtDecode(token);
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    isTokenValid = !decoded?.exp || decoded.exp > nowInSeconds;
+  } catch {
+    isTokenValid = false;
+  }
+
+  if (!isTokenValid) {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("rol");
     return <Navigate to="/" />;
   }
+
+  return <Outlet />;
 }
 
 export default PrivateRoute;

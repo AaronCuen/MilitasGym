@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { getStoredUser } from "../utils/storage";
 
 function Layout() {
   const location = useLocation();
@@ -9,7 +10,7 @@ function Layout() {
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
   const rol = user?.rol;
   const isAdmin = rol === "admin";
 
@@ -22,14 +23,16 @@ function Layout() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");
+  };
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
   };
 
   return (
@@ -75,7 +78,7 @@ function Layout() {
         </div>
 
         <nav style={styles.nav}>
-          <Link to="/" style={{ ...styles.link, ...(isActive("/") && styles.active) }}>
+          <Link to="/home" onClick={handleNavClick} style={{ ...styles.link, ...(isActive("/home") && styles.active) }}>
             Pagina principal
           </Link>
 
@@ -83,6 +86,7 @@ function Layout() {
 
           <Link
             to="/registrar"
+            onClick={handleNavClick}
             style={{ ...styles.link, ...(isActive("/registrar") && styles.active) }}
           >
             Registrar usuarios
@@ -90,6 +94,7 @@ function Layout() {
 
           <Link
             to="/buscar-usuario"
+            onClick={handleNavClick}
             style={{ ...styles.link, ...(isActive("/buscar-usuario") && styles.active) }}
           >
             Registrar asistencia
@@ -97,6 +102,7 @@ function Layout() {
 
           <Link
             to="/usuarios"
+            onClick={handleNavClick}
             style={{ ...styles.link, ...(isActive("/usuarios") && styles.active) }}
           >
             Lista de usuarios
@@ -105,6 +111,7 @@ function Layout() {
           {isAdmin && (
             <Link
               to="/registrar-recepcionista"
+              onClick={handleNavClick}
               style={{
                 ...styles.link,
                 ...(isActive("/registrar-recepcionista") && styles.active),

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
+import { getStoredUser } from "../utils/storage";
 
-const API_BASE_URL = "http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io";
 const INITIAL_FILTROS = {
   id: "",
   nombre: "",
@@ -36,25 +37,25 @@ function Users() {
 
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = getStoredUser();
 
-  const authHeaders = () => {
+  const authHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No token");
     return {
       Authorization: `Bearer ${token}`,
     };
-  };
+  }, []);
 
-  const withAuth = () => ({ headers: authHeaders() });
+  const withAuth = useCallback(() => ({ headers: authHeaders() }), [authHeaders]);
 
-  const cargarUsuarios = async () => {
+  const cargarUsuarios = useCallback(async () => {
     const res = await axios.get(
       `${API_BASE_URL}/usuarios-con-membresia`,
       withAuth()
     );
     setUsuarios(res.data);
-  };
+  }, [withAuth]);
 
   const onButtonHoverIn = (e) => {
     e.currentTarget.style.opacity = "0.85";
@@ -62,14 +63,6 @@ function Users() {
 
   const onButtonHoverOut = (e) => {
     e.currentTarget.style.opacity = "1";
-  };
-
-  const onCloseHoverIn = (e) => {
-    e.currentTarget.style.color = "#111827";
-  };
-
-  const onCloseHoverOut = (e) => {
-    e.currentTarget.style.color = "#6b7280";
   };
 
   const actualizarUsuarioEditando = (campo) => (e) => {
@@ -273,7 +266,7 @@ const confirmarRenovacion = async (membresia_id) => {
       setImagenEditar(null);
       setMostrarModalEditar(true);
 
-    } catch (error) {
+    } catch {
       alert("Error al cargar datos del usuario");
     }
   };
@@ -382,7 +375,7 @@ const confirmarRenovacion = async (membresia_id) => {
       .catch(() => {
         setLoading(false);
       });
-  }, []);
+  }, [cargarUsuarios]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1880,5 +1873,3 @@ estadoInactivo: {
 };
 
 export default Users;
-
-
