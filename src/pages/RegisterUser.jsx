@@ -120,12 +120,12 @@ function RegisterUser() {
 
     if (esManual) {
       if (!fechaInicioManual) {
-        setMensaje("Debes seleccionar la fecha de inicio");
-        return;
+        fechaInicioManual = fechaHoyISO();
       }
 
       if (!fechaFinManual) {
-        fechaFinManual = fechaHoyISO();
+        setMensaje("Debes seleccionar la fecha de vencimiento");
+        return;
       }
 
       if (fechaFinManual <= fechaInicioManual) {
@@ -187,6 +187,7 @@ function RegisterUser() {
       const bodyData = {
         ...form,
         membresia_id: Number(form.membresia_id),
+        fecha_inicio: esManual ? fechaInicioManual : form.fecha_inicio,
         fecha_fin: esManual ? fechaFinManual : form.fecha_fin,
         foto: fotoUrl,
       };
