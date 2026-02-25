@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function RegistrarRecepcionista() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   const rol = localStorage.getItem("rol");
 
@@ -11,6 +14,12 @@ function RegistrarRecepcionista() {
     if (rol !== "admin") {
       navigate("/usuarios", { replace: true });
     }
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const [form, setForm] = useState({
@@ -38,63 +47,61 @@ function RegistrarRecepcionista() {
         form,
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
       setMensaje("Recepcionista registrada correctamente");
       setForm({ nombre: "", usuario: "", password: "" });
-
     } catch (err) {
       setMensaje(err.response?.data?.message || "Error al registrar");
     }
   };
 
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+
+  const topbarStyle = {
+    ...styles.topbar,
+    ...(isMobile ? { padding: "0 12px", height: "48px" } : {}),
+  };
+  const topTitleStyle = {
+    ...styles.topTitle,
+    ...(isMobile ? { fontSize: "14px" } : {}),
+  };
+  const avatarStyle = {
+    ...styles.avatar,
+    ...(isMobile ? { width: "30px", height: "30px", fontSize: "13px" } : {}),
+  };
+  const contentStyle = {
+    ...styles.content,
+    ...(isMobile ? { padding: "12px" } : isTablet ? { padding: "16px" } : {}),
+  };
+  const cardStyle = {
+    ...styles.card,
+    ...(isMobile ? { padding: "16px" } : {}),
+  };
+  const inputStyle = {
+    ...styles.input,
+    ...(isMobile ? { fontSize: "13px", padding: "10px" } : {}),
+  };
 
   return (
     <>
-      <header style={styles.topbar}>
-        <span style={styles.topTitle}>Registro de recepcionistas</span>
-        <div style={styles.avatar}>
-          {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}
-        </div>
+      <header style={topbarStyle}>
+        <span style={topTitleStyle}>Registro de recepcionistas</span>
+        <div style={avatarStyle}>{user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}</div>
       </header>
 
-      <main style={styles.content}>
-        <div style={styles.card}>
+      <main style={contentStyle}>
+        <div style={cardStyle}>
           <h2 style={styles.title}>Registrar recepcionista</h2>
 
           <form onSubmit={handleSubmit} style={styles.form}>
-            <input
-              type="text"
-              name="nombre"
-              placeholder="Nombre completo"
-              value={form.nombre}
-              onChange={handleChange}
-              required
-              style={styles.input}
-            />
-
-            <input
-              type="text"
-              name="usuario"
-              placeholder="Usuario"
-              value={form.usuario}
-              onChange={handleChange}
-              required
-              style={styles.input}
-            />
-
-            <input
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              value={form.password}
-              onChange={handleChange}
-              required
-              style={styles.input}
-            />
+            <input type="text" name="nombre" placeholder="Nombre completo" value={form.nombre} onChange={handleChange} required style={inputStyle} />
+            <input type="text" name="usuario" placeholder="Usuario" value={form.usuario} onChange={handleChange} required style={inputStyle} />
+            <input type="password" name="password" placeholder="Contrasena" value={form.password} onChange={handleChange} required style={inputStyle} />
 
             <button type="submit" style={styles.button}>
               Registrar recepcionista
@@ -105,9 +112,7 @@ function RegistrarRecepcionista() {
             <p
               style={{
                 ...styles.message,
-                color: mensaje.includes("correctamente")
-                  ? "#15803d"
-                  : "#b91c1c",
+                color: mensaje.includes("correctamente") ? "#15803d" : "#b91c1c",
               }}
             >
               {mensaje}
@@ -119,35 +124,27 @@ function RegistrarRecepcionista() {
   );
 }
 
-/* ====================== ESTILOS ====================== */
-
 const styles = {
-    topbar: {
-  height: "40px",
-  backgroundColor: "#e5e7eb",
-  display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
-  justifyContent: "space-between",
-  padding: "0 24px",             // solo horizontal
-  borderBottom: "1px solid #d1d5db",
-  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
-  backdropFilter: "blur(2px)",
+  topbar: {
+    height: "40px",
+    backgroundColor: "#e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 24px",
+    borderBottom: "1px solid #d1d5db",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)",
   },
 
   topTitle: {
-  fontSize: "16px",
-  fontWeight: "600",
-  color: "#111827",
-  margin: 0,                     // 🔥 elimina margen default
-  lineHeight: "1",               // 🔥 evita que estire altura
-  display: "flex",
-  alignItems: "center",
-  },
-
-  topRight: {
-  display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
-  gap: "16px",
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#111827",
+    margin: 0,
+    lineHeight: "1",
+    display: "flex",
+    alignItems: "center",
   },
 
   avatar: {
@@ -165,11 +162,11 @@ const styles = {
   content: {
     flex: 1,
     display: "flex",
-    padding: "32px",
-    marginTop: "32px", // 👈 ESTA ES LA CLAVE
     justifyContent: "center",
     alignItems: "center",
+    minHeight: "calc(100vh - 64px)",
     backgroundColor: "#f3f4f6",
+    padding: "24px",
   },
 
   card: {
@@ -178,8 +175,7 @@ const styles = {
     backgroundColor: "#ffffff",
     padding: "28px",
     borderRadius: "14px",
-    boxShadow:
-      "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)",
+    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)",
   },
 
   title: {

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gymImage from "../assets/Background.png";
 import blurredback from "../assets/blurredbackground.png";
 import logo from "../assets/Logo.png";
-
 
 function Login() {
   const navigate = useNavigate();
@@ -15,14 +14,22 @@ function Login() {
   const [focusedField, setFocusedField] = useState(null);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
-  // 🔐 Si ya hay sesión, manda directo al home
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       navigate("/home", { replace: true });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const validate = () => {
     const newErrors = {};
@@ -32,7 +39,7 @@ function Login() {
     }
 
     if (!password) {
-      newErrors.password = "La contraseña es obligatoria";
+      newErrors.password = "La contrasena es obligatoria";
     } else if (password.length < 6) {
       newErrors.password = "Debe tener al menos 6 caracteres";
     }
@@ -42,56 +49,92 @@ function Login() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setServerError("");
+    e.preventDefault();
+    setServerError("");
 
-  if (!validate()) return;
+    if (!validate()) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const res = await fetch("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        usuario: username,
-        password: password,
-      }),
-    });
+      const res = await fetch("http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario: username,
+          password: password,
+        }),
+      });
 
-    const data = await res.json();
-    console.log("RESPUESTA DEL BACKEND:", data);
+      const data = await res.json();
 
-    if (!res.ok) {
-      setServerError(data.message || "Error al iniciar sesión");
-      return;
+      if (!res.ok) {
+        setServerError(data.message || "Error al iniciar sesion");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("rol", data.user.rol);
+      navigate("/home", { replace: true });
+    } catch (error) {
+      setServerError("No se pudo conectar con el servidor");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // 🔐 Guardar JWT real
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    localStorage.setItem("rol", data.user.rol);
-    navigate("/home", { replace: true });
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
 
-  } catch (error) {
-    setServerError("No se pudo conectar con el servidor");
-  } finally {
-    setLoading(false);
-  }
-};
+  const wrapperStyle = {
+    ...styles.wrapper,
+    ...(isMobile ? { padding: "12px" } : isTablet ? { padding: "16px" } : {}),
+  };
+  const cardStyle = {
+    ...styles.card,
+    ...(isMobile
+      ? { width: "100%", maxWidth: "420px", height: "auto", flexDirection: "column" }
+      : isTablet
+      ? { width: "92vw", maxWidth: "860px" }
+      : {}),
+  };
+  const imageSectionStyle = {
+    ...styles.imageSection,
+    ...(isMobile ? { width: "100%", height: "180px" } : {}),
+  };
+  const formSectionStyle = {
+    ...styles.formSection,
+    ...(isMobile ? { width: "100%", padding: "18px 0" } : {}),
+  };
+  const formContainerStyle = {
+    ...styles.formContainer,
+    ...(isMobile ? { width: "88%" } : isTablet ? { width: "82%" } : {}),
+  };
+  const logoStyle = {
+    ...styles.logo,
+    ...(isMobile ? { width: "150px" } : isTablet ? { width: "180px" } : {}),
+  };
+  const titleStyle = {
+    ...styles.title,
+    ...(isMobile ? { fontSize: "20px", marginBottom: "18px" } : {}),
+  };
+  const inputStyle = {
+    ...styles.input,
+    ...(isMobile ? { fontSize: "13px" } : {}),
+  };
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.card}>
-        <div style={styles.imageSection}></div>
+    <div style={wrapperStyle}>
+      <div style={cardStyle}>
+        <div style={imageSectionStyle}></div>
 
-        <div style={styles.formSection}>
-          <div style={styles.formContainer}>
-
-            <img src={logo} alt="MG Logo" style={styles.logo} />
-            <h2 style={styles.title}>¡Hola! Estás de vuelta.</h2>
+        <div style={formSectionStyle}>
+          <div style={formContainerStyle}>
+            <img src={logo} alt="MG Logo" style={logoStyle} />
+            <h2 style={titleStyle}>Hola! Estas de vuelta.</h2>
 
             <h3 style={styles.Subttile}>Usuario</h3>
             <input
@@ -102,20 +145,19 @@ function Login() {
               onFocus={() => setFocusedField("username")}
               onBlur={() => setFocusedField(null)}
               style={{
-                ...styles.input,
-                borderBottom:
-                  errors.username
-                    ? "2px solid #b00020"
-                    : focusedField === "username"
-                    ? "2px solid #8b0000"
-                    : "1px solid #c7c7c7",
+                ...inputStyle,
+                borderBottom: errors.username
+                  ? "2px solid #b00020"
+                  : focusedField === "username"
+                  ? "2px solid #8b0000"
+                  : "1px solid #c7c7c7",
               }}
             />
             <span style={{ ...styles.error, opacity: errors.username ? 1 : 0 }}>
               {errors.username || " "}
             </span>
 
-            <h3 style={styles.Subttile}>Contraseña</h3>
+            <h3 style={styles.Subttile}>Contrasena</h3>
             <div style={styles.passwordWrapper}>
               <input
                 type={showPassword ? "text" : "password"}
@@ -125,21 +167,17 @@ function Login() {
                 onFocus={() => setFocusedField("password")}
                 onBlur={() => setFocusedField(null)}
                 style={{
-                  ...styles.input,
+                  ...inputStyle,
                   paddingRight: "40px",
-                  borderBottom:
-                    errors.password
-                      ? "2px solid #b00020"
-                      : focusedField === "password"
-                      ? "2px solid #8b0000"
-                      : "1px solid #c7c7c7",
+                  borderBottom: errors.password
+                    ? "2px solid #b00020"
+                    : focusedField === "password"
+                    ? "2px solid #8b0000"
+                    : "1px solid #c7c7c7",
                 }}
               />
-              <span
-                style={styles.eye}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? "🙈" : "👁️"}
+              <span style={styles.eye} onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? "Ocultar" : "Ver"}
               </span>
             </div>
             <span style={{ ...styles.error, opacity: errors.password ? 1 : 0 }}>
@@ -147,9 +185,7 @@ function Login() {
             </span>
 
             {serverError && (
-              <span style={{ ...styles.error, opacity: 1, textAlign: "center" }}>
-                {serverError}
-              </span>
+              <span style={{ ...styles.error, opacity: 1, textAlign: "center" }}>{serverError}</span>
             )}
 
             <button
@@ -157,9 +193,8 @@ function Login() {
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? "Ingresando..." : "Iniciar sesión"}
+              {loading ? "Ingresando..." : "Iniciar sesion"}
             </button>
-
           </div>
         </div>
       </div>
@@ -172,12 +207,13 @@ export default Login;
 const styles = {
   wrapper: {
     width: "100vw",
-    height: "100vh",
+    minHeight: "100vh",
     backgroundImage: `url(${blurredback})`,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     backgroundSize: "cover",
+    backgroundPosition: "center",
   },
   card: {
     width: "900px",
@@ -219,8 +255,10 @@ const styles = {
     position: "absolute",
     right: "10px",
     cursor: "pointer",
-    fontSize: "16px",
+    fontSize: "12px",
     userSelect: "none",
+    color: "#6b7280",
+    fontWeight: "600",
   },
   input: {
     width: "100%",

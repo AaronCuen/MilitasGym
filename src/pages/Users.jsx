@@ -13,9 +13,13 @@ const INITIAL_FILTROS = {
 function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   const fileInputRef = useRef(null);
   const [imagenEditar, setImagenEditar] = useState(null);
+  const [previewImagenEditar, setPreviewImagenEditar] = useState("");
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -85,7 +89,7 @@ function Users() {
   };
 
   const formatearFecha = (fecha, usarSplit = false) => {
-    if (!fecha) return "â€”";
+    if (!fecha) return "-";
     const valor = usarSplit ? fecha.split("T")[0] : fecha;
     return new Date(`${valor}T00:00:00`).toLocaleDateString("es-MX");
   };
@@ -115,6 +119,10 @@ function Users() {
   };
 const confirmarRenovacion = async (membresia_id) => {
   try {
+    if (!usuarioRenovar?.id) {
+      alert("No hay usuario seleccionado para renovar");
+      return;
+    }
 
     const data = {
       usuario_id: usuarioRenovar.id,
@@ -128,6 +136,10 @@ const confirmarRenovacion = async (membresia_id) => {
       }
 
       const fechaInicio = fechaInicioManual || fechaLocalISO();
+      if (fechaFinManual <= fechaInicio) {
+        alert("La fecha fin debe ser mayor a la fecha inicio");
+        return;
+      }
 
       data.fecha_inicio_manual = fechaInicio;
       data.fecha_fin_manual = fechaFinManual;
@@ -165,17 +177,17 @@ const confirmarRenovacion = async (membresia_id) => {
     setFiltros(nuevosFiltros);
 
     setLoading(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
+        {
+          params: nuevosFiltros,
+          ...withAuth(),
+        }
+      );
 
-    const res = await axios.get(
-      `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
-      {
-        params: nuevosFiltros,
-        ...withAuth(),
-      }
-    );
-
-    let data = res.data;
-    console.log("ESTADO ACTUAL:", filtros.estado);
+      let data = res.data;
+      console.log("ESTADO ACTUAL:", filtros.estado);
 
 
     /*if (estado !== "todos") {
@@ -195,8 +207,13 @@ const confirmarRenovacion = async (membresia_id) => {
       data = filtrados;
     }*/
 
-    setUsuarios(data);
-    setLoading(false);
+      setUsuarios(data);
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+      alert("Error al filtrar usuarios");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const subirImagenCloudinary = async () => {
@@ -301,17 +318,22 @@ const confirmarRenovacion = async (membresia_id) => {
 
   const buscarUsuarios = async () => {
     setLoading(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
+        {
+          params: filtros,
+          ...withAuth(),
+        }
+      );
 
-    const res = await axios.get(
-      `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
-      {
-        params: filtros,
-        ...withAuth(),
-      }
-    );
-
-    setUsuarios(res.data);
-    setLoading(false);
+      setUsuarios(res.data);
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+      alert("Error al buscar usuarios");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -322,82 +344,291 @@ const confirmarRenovacion = async (membresia_id) => {
       });
   }, []);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!imagenEditar) {
+      setPreviewImagenEditar("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imagenEditar);
+    setPreviewImagenEditar(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [imagenEditar]);
+
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+  const isCompactFilters = viewportWidth < 1300;
+
+  const topbarStyle = {
+    ...styles.topbar,
+    ...(isMobile ? { padding: "0 12px", height: "48px" } : {}),
+  };
+  const topTitleStyle = {
+    ...styles.topTitle,
+    ...(isMobile ? { fontSize: "14px" } : {}),
+  };
+  const avatarStyle = {
+    ...styles.avatar,
+    ...(isMobile ? { width: "30px", height: "30px", fontSize: "13px" } : {}),
+  };
+  const contentStyle = {
+    ...styles.content,
+    ...(isMobile ? { padding: "12px" } : isTablet ? { padding: "16px" } : {}),
+  };
+  const cardStyle = {
+    ...styles.card,
+    maxWidth: isMobile ? "100%" : isTablet ? "980px" : "1120px",
+    ...(isMobile ? { padding: "14px" } : isTablet ? { padding: "20px" } : {}),
+  };
+  const filtersRowStyle = {
+    ...styles.FilersRow,
+    flexDirection: "column",
+    flexWrap: "nowrap",
+    alignItems: "stretch",
+    width: "100%",
+    rowGap: "10px",
+  };
+  const filterInputsGroupStyle = {
+    display: "flex",
+    gap: "8px",
+    alignItems: "flex-end",
+    flexWrap: isMobile ? "wrap" : "nowrap",
+    flex: "0 0 auto",
+    minWidth: 0,
+    width: "100%",
+  };
+  const filterButtonsGroupStyle = {
+    display: "flex",
+    gap: "8px",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    flexWrap: isMobile ? "wrap" : "nowrap",
+    flex: "0 0 auto",
+    width: "100%",
+  };
+  const filterTextInputStyle = {
+    ...styles.InputFilters,
+    boxSizing: "border-box",
+    width: "100%",
+    minWidth: 0,
+    height: "42px",
+    padding: "10px 12px",
+    flex: isMobile ? "1 1 100%" : "0 0 150px",
+    maxWidth: isMobile ? "100%" : "150px",
+  };
+  const filterDateInputStyle = {
+    ...styles.InputFilters,
+    boxSizing: "border-box",
+    width: "100%",
+    minWidth: 0,
+    height: "42px",
+    padding: "10px 12px",
+  };
+  const dateGroupStyle = {
+    ...styles.dateGroup,
+    flex: isMobile ? "1 1 100%" : "0 0 190px",
+    minWidth: 0,
+    maxWidth: isMobile ? "100%" : "190px",
+  };
+  const actionBtnStyle = {
+    flex: isMobile ? "1 1 100%" : "0 0 auto",
+    width: isMobile ? "100%" : "120px",
+    height: "42px",
+    padding: "0 12px",
+    justifyContent: "center",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
+  };
+  const btnActivosStyle = {
+    ...styles.filterBtnBase,
+    ...styles.filterBtnActivo,
+    ...(filtros.estado === "activo" ? styles.filterBtnActivoOn : styles.filterBtnActivoOff),
+    ...actionBtnStyle,
+  };
+  const btnInactivosStyle = {
+    ...styles.filterBtnBase,
+    ...styles.filterBtnInactivo,
+    ...(filtros.estado === "inactivo" ? styles.filterBtnInactivoOn : styles.filterBtnInactivoOff),
+    ...actionBtnStyle,
+  };
+  const btnBuscarStyle = {
+    ...styles.filterBtnBase,
+    ...styles.filterBtnBuscar,
+    ...actionBtnStyle,
+  };
+  const btnLimpiarStyle = {
+    ...styles.filterBtnBase,
+    ...styles.filterBtnLimpiar,
+    ...actionBtnStyle,
+  };
+  const tableContainerStyle = {
+    ...styles.tableContainer,
+    overflowX: isMobile ? "auto" : "hidden",
+  };
+  const tableStyle = {
+    ...styles.table,
+    ...(isMobile ? { minWidth: "880px" } : {}),
+  };
+  const thStyle = {
+    ...styles.th,
+    ...(isMobile ? { padding: "10px", fontSize: "12px" } : {}),
+  };
+  const tdStyle = {
+    ...styles.td,
+    wordBreak: isMobile ? "break-word" : "normal",
+    ...(isMobile ? { padding: "10px", fontSize: "12px" } : {}),
+  };
+  const actionThStyle = {
+    ...thStyle,
+    textAlign: "center",
+    width: isMobile ? "160px" : "230px",
+  };
+  const actionTdStyle = {
+    ...tdStyle,
+    textAlign: "center",
+    width: isMobile ? "160px" : "230px",
+  };
+  const rowActionsStyle = {
+    ...styles.actions,
+    flexWrap: isMobile ? "wrap" : "nowrap",
+    gap: "8px",
+  };
+  const rowEditBtnStyle = {
+    ...styles.btnEdit,
+    ...(isCompactFilters ? { padding: "6px 10px" } : {}),
+  };
+  const rowViewBtnStyle = {
+    ...styles.btnView,
+    ...(isCompactFilters ? { padding: "6px 10px" } : {}),
+  };
+  const rowDeleteBtnStyle = {
+    ...styles.btnDelete,
+    ...(isCompactFilters ? { padding: "6px 10px" } : {}),
+  };
+  const modalStyle = {
+    ...styles.editModal,
+    ...(isMobile ? { width: "95vw", padding: "14px" } : isTablet ? { width: "86vw" } : {}),
+  };
+  const modalGridStyle = {
+    ...styles.viewInfoGrid,
+    ...(isMobile ? { gridTemplateColumns: "1fr" } : {}),
+  };
+  const modalFormGridStyle = {
+    ...styles.editFormGrid,
+    ...(isMobile ? { gap: "10px" } : {}),
+  };
+  const modalActionsStyle = {
+    ...styles.editActions,
+    ...(isMobile ? { flexDirection: "column", alignItems: "stretch" } : {}),
+  };
+  const modalPrimaryBtnStyle = {
+    ...styles.editBtnPrimary,
+    ...(isMobile ? { width: "100%" } : {}),
+  };
+  const modalSecondaryBtnStyle = {
+    ...styles.editBtnSecondary,
+    ...(isMobile ? { width: "100%" } : {}),
+  };
+  const photoModalStyle = {
+    ...styles.photoModal,
+    ...(isMobile ? { width: "95vw", padding: "12px" } : {}),
+  };
+
   return (
     <>
-      <header style={styles.topbar}>
-        <span style={styles.topTitle}>
+      <header style={topbarStyle}>
+        <span style={topTitleStyle}>
           Usuarios registrados en el sistema.
         </span>
-        <div style={styles.avatar}>
+        <div style={avatarStyle}>
           {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}
         </div>
       </header>
 
-      <main style={styles.content}>
-        <div style={styles.card}>
+      <main style={contentStyle}>
+        <div style={cardStyle}>
           <h2 style={styles.title}>Lista de usuarios registrados</h2>
 
-          <div style={styles.FilersRow}>
-            <input
-              style={styles.InputFilters}
-              placeholder="ID"
-              value={filtros.id}
-              onChange={actualizarFiltro("id")}
-            />
-
-            <input
-              style={styles.InputFilters}
-              placeholder="Nombre"
-              value={filtros.nombre}
-              onChange={actualizarFiltro("nombre")}
-            />
-
-            <div style={styles.dateGroup}>
-              <label style={styles.dateLabel}>Fecha de registro</label>
+          <div style={filtersRowStyle}>
+            <div style={filterInputsGroupStyle}>
               <input
-                type="date"
-                style={styles.InputFilters}
-                onChange={actualizarFiltro("fecha_inicio")}
+                style={filterTextInputStyle}
+                placeholder="ID"
+                value={filtros.id}
+                onChange={actualizarFiltro("id")}
               />
+
+              <input
+                style={filterTextInputStyle}
+                placeholder="Nombre"
+                value={filtros.nombre}
+                onChange={actualizarFiltro("nombre")}
+              />
+
+              <div style={dateGroupStyle}>
+                <label style={styles.dateLabel}>Fecha de registro</label>
+                <input
+                  type="date"
+                  style={filterDateInputStyle}
+                  onChange={actualizarFiltro("fecha_inicio")}
+                />
+              </div>
+
+              <div style={dateGroupStyle}>
+                <label style={styles.dateLabel}>Fecha de vencimiento</label>
+                <input
+                  type="date"
+                  style={filterDateInputStyle}
+                  onChange={actualizarFiltro("fecha_fin")}
+                />
+              </div>
             </div>
 
-            <div style={styles.dateGroup}>
-              <label style={styles.dateLabel}>Fecha de vencimiento</label>
-              <input
-                type="date"
-                style={styles.InputFilters}
-                onChange={actualizarFiltro("fecha_fin")}
-              />
+            <div style={filterButtonsGroupStyle}>
+              <button
+                style={btnActivosStyle}
+                onMouseEnter={onButtonHoverIn}
+                onMouseLeave={onButtonHoverOut}
+                onClick={() => filtrarPorEstado("activo")}
+              >
+                Activos
+              </button>
+
+              <button
+                style={btnInactivosStyle}
+                onMouseEnter={onButtonHoverIn}
+                onMouseLeave={onButtonHoverOut}
+                onClick={() => filtrarPorEstado("inactivo")}
+              >
+                Inactivos
+              </button>
+
+              <button
+                style={btnBuscarStyle}
+                onMouseEnter={onButtonHoverIn}
+                onMouseLeave={onButtonHoverOut}
+                onClick={buscarUsuarios}
+              >
+                Buscar
+              </button>
+              <button
+                style={btnLimpiarStyle}
+                onMouseEnter={onButtonHoverIn}
+                onMouseLeave={onButtonHoverOut}
+                onClick={limpiarFiltros}
+              >
+                Limpiar
+              </button>
             </div>
-
-            <button
-              style={{
-                ...styles.ButtonSearch,
-                backgroundColor: filtros.estado === "activo" ? "#16a34a" : "#206320",
-              }}
-              onClick={() => filtrarPorEstado("activo")}
-            >
-              Activos
-            </button>
-
-            <button
-              style={{
-                ...styles.ButtonSearch,
-                backgroundColor: filtros.estado === "inactivo" ? "#dc2626" : "rgb(116, 29, 29)",
-              }}
-              onClick={() => filtrarPorEstado("inactivo")}
-            >
-              Inactivos
-            </button>
-
-
-
-            <button style={styles.ButtonSearch} onClick={buscarUsuarios}>
-              Buscar
-            </button>
-            <button style={styles.ButtonClear} onClick={limpiarFiltros}>
-              Limpiar
-            </button>
           </div>
 
           {loading ? (
@@ -406,18 +637,18 @@ const confirmarRenovacion = async (membresia_id) => {
             <p>No hay usuarios registrados.</p>
           ) : (
             
-            <div style={styles.tableContainer}>
-            <table style={styles.table}>
+            <div style={tableContainerStyle}>
+            <table style={tableStyle}>
               <thead>
                 <tr>
-                  <th style={styles.th}>ID</th>
-                  <th style={styles.th}>Nombre</th>
-                  <th style={styles.th}>Apellido</th>
-                  <th style={styles.th}>Teléfono</th>
-                  <th style={styles.th}>Email</th>
-                  <th style={styles.th}>Estado</th>
-                  <th style={styles.th}>Vence</th>
-                  <th style={{ ...styles.th, textAlign: "center" }}>
+                  <th style={thStyle}>ID</th>
+                  <th style={thStyle}>Nombre</th>
+                  <th style={thStyle}>Apellido</th>
+                  <th style={thStyle}>Teléfono</th>
+                  <th style={thStyle}>Email</th>
+                  <th style={thStyle}>Estado</th>
+                  <th style={thStyle}>Vence</th>
+                  <th style={actionThStyle}>
                     Acciones
                   </th>
                 </tr>
@@ -440,13 +671,13 @@ const confirmarRenovacion = async (membresia_id) => {
                     index % 2 === 0 ? "#ffffff" : "#f9fafb")
                 }
               >
-                    <td style={styles.td}>{u.id}</td>
-                    <td style={styles.td}>{u.nombre}</td>
-                    <td style={styles.td}>{u.apellido}</td>
-                    <td style={styles.td}>{u.telefono}</td>
-                    <td style={styles.td}>{u.email}</td>
+                    <td style={tdStyle}>{u.id}</td>
+                    <td style={tdStyle}>{u.nombre}</td>
+                    <td style={tdStyle}>{u.apellido}</td>
+                    <td style={tdStyle}>{u.telefono}</td>
+                    <td style={tdStyle}>{u.email}</td>
 
-                    <td style={styles.td}>
+                    <td style={tdStyle}>
                       <span
                         style={
                           u.estado === "ACTIVO"
@@ -458,15 +689,15 @@ const confirmarRenovacion = async (membresia_id) => {
                       </span>
                     </td>
 
-                    <td style={styles.td}>
+                    <td style={tdStyle}>
                       {formatearFecha(u.fecha_fin, true)}
                     </td>
 
-                    <td style={{ ...styles.td, textAlign: "center" }}>
-                      <div style={styles.actions}>
+                    <td style={actionTdStyle}>
+                      <div style={rowActionsStyle}>
 
                         <button
-                          style={styles.btnEdit}
+                          style={rowEditBtnStyle}
                           onMouseEnter={onButtonHoverIn}
                           onMouseLeave={onButtonHoverOut}
                           onClick={() => abrirModalEditar(u)}
@@ -475,7 +706,7 @@ const confirmarRenovacion = async (membresia_id) => {
                         </button>
 
                         <button
-                          style={styles.btnView}
+                          style={rowViewBtnStyle}
                           onMouseEnter={onButtonHoverIn}
                           onMouseLeave={onButtonHoverOut}
                           onClick={() => verUsuario(u.id)}
@@ -483,7 +714,7 @@ const confirmarRenovacion = async (membresia_id) => {
                           Ver
                         </button>
                         <button
-                          style={styles.btnDelete}
+                          style={rowDeleteBtnStyle}
                           onMouseEnter={onButtonHoverIn}
                           onMouseLeave={onButtonHoverOut}
                           onClick={() => eliminarUsuario(u.id)}
@@ -502,7 +733,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
 {mostrarModal && usuarioSeleccionado && (
   <div style={styles.modalOverlay}>
-    <div style={styles.editModal}>
+    <div style={modalStyle}>
       <div style={styles.editHeader}>
         <h3 style={styles.editTitle}>Detalle de Usuario</h3>
         <p style={styles.editSubtitle}>Informacion del perfil y membresia.</p>
@@ -533,7 +764,7 @@ const confirmarRenovacion = async (membresia_id) => {
         <p style={styles.profileEmail}>{usuarioSeleccionado.email}</p>
       </div>
 
-      <div style={styles.viewInfoGrid}>
+      <div style={modalGridStyle}>
         <div style={styles.viewInfoItem}>
           <span style={styles.editLabel}>ID</span>
           <p style={styles.viewInfoValue}>{usuarioSeleccionado.id}</p>
@@ -566,9 +797,9 @@ const confirmarRenovacion = async (membresia_id) => {
         </div>
       </div>
 
-      <div style={styles.editActions}>
+      <div style={modalActionsStyle}>
         <button
-          style={styles.editBtnPrimary}
+          style={modalPrimaryBtnStyle}
           onMouseEnter={onButtonHoverIn}
           onMouseLeave={onButtonHoverOut}
           onClick={() => abrirModalRenovar(usuarioSeleccionado)}
@@ -577,7 +808,7 @@ const confirmarRenovacion = async (membresia_id) => {
         </button>
 
         <button
-          style={styles.editBtnSecondary}
+          style={modalSecondaryBtnStyle}
           onClick={() => {
             setMostrarModal(false);
             setMostrarModalFoto(false);
@@ -592,15 +823,15 @@ const confirmarRenovacion = async (membresia_id) => {
 
 {mostrarModalFoto && usuarioSeleccionado?.foto && (
   <div style={styles.modalOverlay}>
-    <div style={styles.photoModal}>
+    <div style={photoModalStyle}>
       <img
         src={usuarioSeleccionado.foto}
         alt="Foto ampliada"
         style={styles.photoModalImage}
       />
-      <div style={styles.editActions}>
+      <div style={modalActionsStyle}>
         <button
-          style={styles.editBtnSecondary}
+          style={modalSecondaryBtnStyle}
           onClick={() => setMostrarModalFoto(false)}
         >
           Cerrar
@@ -611,7 +842,7 @@ const confirmarRenovacion = async (membresia_id) => {
 )}
 {mostrarModalRenovar && (
   <div style={styles.modalOverlay}>
-    <div style={styles.editModal}>
+    <div style={modalStyle}>
       <div style={styles.editHeader}>
         <h3 style={styles.editTitle}>Renovar Membresia</h3>
         <p style={styles.editSubtitle}>
@@ -664,7 +895,7 @@ const confirmarRenovacion = async (membresia_id) => {
       )}
 
       {modoManual && (
-        <div style={styles.editFormGrid}>
+        <div style={modalFormGridStyle}>
           <div style={styles.editField}>
             <label style={styles.editLabel}>
               Fecha Inicio (vacio = hoy)
@@ -673,7 +904,7 @@ const confirmarRenovacion = async (membresia_id) => {
               type="date"
               value={fechaInicioManual}
               onChange={(e) => setFechaInicioManual(e.target.value)}
-              style={styles.editInput}
+              style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
             />
           </div>
 
@@ -683,13 +914,13 @@ const confirmarRenovacion = async (membresia_id) => {
               type="date"
               value={fechaFinManual}
               onChange={(e) => setFechaFinManual(e.target.value)}
-              style={styles.editInput}
+              style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
             />
           </div>
 
-          <div style={styles.editActions}>
+          <div style={modalActionsStyle}>
             <button
-              style={styles.editBtnPrimary}
+              style={modalPrimaryBtnStyle}
               onMouseEnter={onButtonHoverIn}
               onMouseLeave={onButtonHoverOut}
               onClick={() => confirmarRenovacion(4)}
@@ -698,14 +929,14 @@ const confirmarRenovacion = async (membresia_id) => {
             </button>
 
             <button
-              style={styles.editBtnSecondary}
+              style={modalSecondaryBtnStyle}
               onClick={() => setModoManual(false)}
             >
               Volver
             </button>
 
             <button
-              style={styles.editBtnSecondary}
+              style={modalSecondaryBtnStyle}
               onClick={() => {
                 setMostrarModalRenovar(false);
                 setModoManual(false);
@@ -718,9 +949,9 @@ const confirmarRenovacion = async (membresia_id) => {
       )}
 
       {!modoManual && (
-        <div style={styles.editActions}>
+        <div style={modalActionsStyle}>
           <button
-            style={styles.editBtnSecondary}
+            style={modalSecondaryBtnStyle}
             onClick={() => {
               setMostrarModalRenovar(false);
               setModoManual(false);
@@ -735,7 +966,7 @@ const confirmarRenovacion = async (membresia_id) => {
 )}
 {mostrarModalEditar && usuarioEditando && (
   <div style={styles.modalOverlay}>
-    <div style={styles.editModal}>
+    <div style={modalStyle}>
       <div style={styles.editHeader}>
         <h3 style={styles.editTitle}>Editar Usuario</h3>
         <p style={styles.editSubtitle}>Actualiza la información del perfil.</p>
@@ -745,8 +976,8 @@ const confirmarRenovacion = async (membresia_id) => {
         {(imagenEditar || usuarioEditando?.foto) && (
           <img
             src={
-              imagenEditar
-                ? URL.createObjectURL(imagenEditar)
+              previewImagenEditar
+                ? previewImagenEditar
                 : usuarioEditando.foto
             }
             alt="Preview"
@@ -773,14 +1004,14 @@ const confirmarRenovacion = async (membresia_id) => {
         />
       </div>
 
-      <div style={styles.editFormGrid}>
+      <div style={modalFormGridStyle}>
         <div style={styles.editField}>
           <label style={styles.editLabel}>Nombre</label>
           <input
             type="text"
             value={usuarioEditando.nombre || ""}
             onChange={actualizarUsuarioEditando("nombre")}
-            style={styles.editInput}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
 
@@ -790,7 +1021,7 @@ const confirmarRenovacion = async (membresia_id) => {
             type="text"
             value={usuarioEditando.apellido || ""}
             onChange={actualizarUsuarioEditando("apellido")}
-            style={styles.editInput}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
 
@@ -800,7 +1031,7 @@ const confirmarRenovacion = async (membresia_id) => {
             type="tel"
             value={usuarioEditando.telefono || ""}
             onChange={actualizarUsuarioEditando("telefono")}
-            style={styles.editInput}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
 
@@ -810,7 +1041,7 @@ const confirmarRenovacion = async (membresia_id) => {
             type="email"
             value={usuarioEditando.email || ""}
             onChange={actualizarUsuarioEditando("email")}
-            style={styles.editInput}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
 
@@ -820,14 +1051,14 @@ const confirmarRenovacion = async (membresia_id) => {
             type="date"
             value={usuarioEditando.fecha_nacimiento || ""}
             onChange={actualizarUsuarioEditando("fecha_nacimiento")}
-            style={styles.editInput}
+            style={{ ...styles.editInput, ...(isMobile ? { minWidth: "100%" } : {}) }}
           />
         </div>
       </div>
 
-      <div style={styles.editActions}>
+      <div style={modalActionsStyle}>
         <button
-          style={styles.editBtnPrimary}
+          style={modalPrimaryBtnStyle}
           onMouseEnter={onButtonHoverIn}
           onMouseLeave={onButtonHoverOut}
           onClick={guardarCambiosUsuario}
@@ -836,7 +1067,7 @@ const confirmarRenovacion = async (membresia_id) => {
         </button>
 
         <button
-          style={styles.editBtnSecondary}
+          style={modalSecondaryBtnStyle}
           onClick={() => setMostrarModalEditar(false)}
         >
           Cancelar
@@ -954,9 +1185,55 @@ btnCloseSmall: {
   cursor: "pointer",
   whiteSpace: "nowrap",
   },
+  filterBtnBase: {
+  padding: "8px 14px",
+  border: "1px solid #d1d5db",
+  borderRadius: "10px",
+  color: "#0f172a",
+  fontWeight: "600",
+  fontSize: "13px",
+  letterSpacing: "0.2px",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
+  transition: "all 0.2s ease",
+  },
+  filterBtnActivo: {
+  borderColor: "#cbd5e1",
+  },
+  filterBtnActivoOn: {
+  backgroundColor: "#e2e8f0",
+  color: "#0f172a",
+  },
+  filterBtnActivoOff: {
+  backgroundColor: "#f8fafc",
+  color: "#334155",
+  },
+  filterBtnInactivo: {
+  borderColor: "#cbd5e1",
+  },
+  filterBtnInactivoOn: {
+  backgroundColor: "#e2e8f0",
+  color: "#0f172a",
+  },
+  filterBtnInactivoOff: {
+  backgroundColor: "#f8fafc",
+  color: "#334155",
+  },
+  filterBtnBuscar: {
+  backgroundColor: "#1e293b",
+  borderColor: "#1e293b",
+  color: "#f8fafc",
+  },
+  filterBtnLimpiar: {
+  backgroundColor: "#475569",
+  borderColor: "#475569",
+  color: "#f8fafc",
+  },
 
   InputFilters: {
     width: "100%",
+    boxSizing: "border-box",
     padding: "12px",
     fontSize: "14px",
     borderRadius: "8px",
@@ -1095,6 +1372,7 @@ btnView: {
   fontWeight: "500",
   cursor: "pointer",
   transition: "all 0.2s ease",
+  whiteSpace: "nowrap",
 },
 
 btnDelete: {
@@ -1107,6 +1385,7 @@ btnDelete: {
   fontWeight: "500",
   cursor: "pointer",
   transition: "all 0.2s ease",
+  whiteSpace: "nowrap",
 },
 modalOverlay: {
   position: "fixed",
@@ -1372,6 +1651,7 @@ btnEdit: {
   fontWeight: "500",
   cursor: "pointer",
   transition: "all 0.2s ease",
+  whiteSpace: "nowrap",
 },
 
 btnOption: {

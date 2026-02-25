@@ -1,13 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function BuscarUsuario() {
   const navigate = useNavigate();
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
 
   const [id, setId] = useState("");
   const [usuario, setUsuario] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const user = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const buscarUsuario = async () => {
     if (!id) {
@@ -23,12 +32,11 @@ function BuscarUsuario() {
         return;
       }
 
-      // 🔍 1. Buscar usuario
       const res = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/usuarios/${id}`, {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await res.json();
@@ -41,17 +49,16 @@ function BuscarUsuario() {
 
       setUsuario(data);
 
-      // 📄 2. Obtener inscripción
       const insRes = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/inscripcion/${id}`, {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const insData = await insRes.json();
 
-      let estado = "Sin membresía";
+      let estado = "Sin membresia";
 
       if (insRes.ok && insData?.fecha_fin) {
         const hoy = new Date();
@@ -59,18 +66,14 @@ function BuscarUsuario() {
         estado = fechaFin >= hoy ? "ACTIVA" : "VENCIDA";
       }
 
-      // ✅ 3. Registrar asistencia SOLO si está activa
       if (estado === "ACTIVA") {
-        const asisRes = await fetch(
-          `http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/asistencia/${id}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
-          }
-        );
+        const asisRes = await fetch(`http://p008kcwgw0084c4wkkwck088.31.97.209.55.sslip.io/asistencia/${id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const asisData = await asisRes.json();
 
@@ -79,13 +82,10 @@ function BuscarUsuario() {
           return;
         }
 
-        setMensaje(
-          `Estado de membresía: ${estado}. ${asisData.message || "Asistencia registrada"}`
-        );
+        setMensaje(`Estado de membresia: ${estado}. ${asisData.message || "Asistencia registrada"}`);
       } else {
-        setMensaje(`Estado de membresía: ${estado}`);
+        setMensaje(`Estado de membresia: ${estado}`);
       }
-
     } catch (error) {
       console.error(error);
       setMensaje("Error de servidor");
@@ -93,17 +93,55 @@ function BuscarUsuario() {
     }
   };
 
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
+
+  const topbarStyle = {
+    ...styles.topbar,
+    ...(isMobile ? { padding: "0 12px", height: "48px" } : {}),
+  };
+  const topTitleStyle = {
+    ...styles.topTitle,
+    ...(isMobile ? { fontSize: "14px" } : {}),
+  };
+  const avatarStyle = {
+    ...styles.avatar,
+    ...(isMobile ? { width: "30px", height: "30px", fontSize: "13px" } : {}),
+  };
+  const contentStyle = {
+    ...styles.content,
+    ...(isMobile ? { padding: "12px" } : isTablet ? { padding: "16px" } : {}),
+  };
+  const cardStyle = {
+    ...styles.card,
+    ...(isMobile ? { padding: "16px" } : {}),
+  };
+  const inputStyle = {
+    ...styles.input,
+    ...(isMobile ? { fontSize: "13px", padding: "10px" } : {}),
+  };
+  const labelStyle = {
+    ...styles.label,
+    ...(isMobile ? { fontSize: "14px" } : {}),
+  };
+  const valueStyle = {
+    ...styles.value,
+    ...(isMobile ? { fontSize: "15px" } : {}),
+  };
+  const imageStyle = {
+    ...styles.resultImage,
+    ...(isMobile ? { width: "100%", height: "auto", maxHeight: "220px" } : {}),
+  };
+
   return (
     <>
-      <header style={styles.topbar}>
-        <span style={styles.topTitle}>Búsqueda de usuarios por ID</span>
-                <div style={styles.avatar}>
-          {user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}
-        </div>
+      <header style={topbarStyle}>
+        <span style={topTitleStyle}>Busqueda de usuarios por ID</span>
+        <div style={avatarStyle}>{user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}</div>
       </header>
 
-      <main style={styles.content}>
-        <div style={styles.card}>
+      <main style={contentStyle}>
+        <div style={cardStyle}>
           <h2 style={styles.title}>Consultar usuario</h2>
 
           <div style={styles.form}>
@@ -112,7 +150,7 @@ function BuscarUsuario() {
               placeholder="ID del usuario"
               value={id}
               onChange={(e) => setId(e.target.value)}
-              style={styles.input}
+              style={inputStyle}
               onFocus={(e) => (e.target.style.borderColor = "#a31211")}
               onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
@@ -123,12 +161,7 @@ function BuscarUsuario() {
           </div>
 
           {mensaje && (
-            <p
-              style={{
-                ...styles.message,
-                color: mensaje.includes("registrada") ? "#15803d" : "#b91c1c"
-              }}
-            >
+            <p style={{ ...styles.message, color: mensaje.includes("registrada") ? "#15803d" : "#b91c1c" }}>
               {mensaje}
             </p>
           )}
@@ -137,35 +170,20 @@ function BuscarUsuario() {
             <div style={styles.result}>
               {usuario.foto && (
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
-                  <img
-                    src={usuario.foto}
-                    alt="Foto del usuario"
-                    style={{
-                      width: "30%",
-                      height: "30%",
-                      objectFit: "cover",
-                      borderRadius: "10px",
-                      border: "2px solid #a31211",
-                      maxHeight: "200px"
-                    }}
-                  />
+                  <img src={usuario.foto} alt="Foto del usuario" style={imageStyle} />
                 </div>
               )}
 
-              <ResultRow label="ID" value={usuario.id} />
-              <ResultRow label="Nombre" value={usuario.nombre} />
-              <ResultRow label="Apellido" value={usuario.apellido} />
-              <ResultRow label="Teléfono" value={usuario.telefono} />
-              <ResultRow label="Email" value={usuario.email} />
+              <ResultRow label="ID" value={usuario.id} labelStyle={labelStyle} valueStyle={valueStyle} />
+              <ResultRow label="Nombre" value={usuario.nombre} labelStyle={labelStyle} valueStyle={valueStyle} />
+              <ResultRow label="Apellido" value={usuario.apellido} labelStyle={labelStyle} valueStyle={valueStyle} />
+              <ResultRow label="Telefono" value={usuario.telefono} labelStyle={labelStyle} valueStyle={valueStyle} />
+              <ResultRow label="Email" value={usuario.email} labelStyle={labelStyle} valueStyle={valueStyle} />
               <ResultRow
-                label="Estado de membresía"
-                value={
-                  mensaje.includes("ACTIVA")
-                    ? "ACTIVA"
-                    : mensaje.includes("VENCIDA")
-                    ? "VENCIDA"
-                    : "SIN MEMBRESÍA"
-                }
+                label="Estado de membresia"
+                value={mensaje.includes("ACTIVA") ? "ACTIVA" : mensaje.includes("VENCIDA") ? "VENCIDA" : "SIN MEMBRESIA"}
+                labelStyle={labelStyle}
+                valueStyle={valueStyle}
               />
             </div>
           )}
@@ -175,41 +193,34 @@ function BuscarUsuario() {
   );
 }
 
-const ResultRow = ({ label, value, color }) => (
+const ResultRow = ({ label, value, color, labelStyle, valueStyle }) => (
   <div style={styles.resultRow}>
-    <span style={styles.label}>{label}</span>
-    <span style={{ ...styles.value, color: color || "#000000" }}>
-      {value}
-    </span>
+    <span style={labelStyle || styles.label}>{label}</span>
+    <span style={{ ...(valueStyle || styles.value), color: color || "#000000" }}>{value}</span>
   </div>
 );
+
 const styles = {
   topbar: {
-  height: "40px",
-  backgroundColor: "#e5e7eb",
-  display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
-  justifyContent: "space-between",
-  padding: "0 24px",             // solo horizontal
-  borderBottom: "1px solid #d1d5db",
-  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
-  backdropFilter: "blur(2px)",
+    height: "40px",
+    backgroundColor: "#e5e7eb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 24px",
+    borderBottom: "1px solid #d1d5db",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
+    backdropFilter: "blur(2px)",
   },
 
   topTitle: {
-  fontSize: "16px",
-  fontWeight: "600",
-  color: "#111827",
-  margin: 0,                     // 🔥 elimina margen default
-  lineHeight: "1",               // 🔥 evita que estire altura
-  display: "flex",
-  alignItems: "center",
-  },
-
-  topRight: {
-  display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
-  gap: "16px",
+    fontSize: "16px",
+    fontWeight: "600",
+    color: "#111827",
+    margin: 0,
+    lineHeight: "1",
+    display: "flex",
+    alignItems: "center",
   },
 
   avatar: {
@@ -226,11 +237,12 @@ const styles = {
 
   content: {
     flex: 1,
-    padding: "40px",
     display: "flex",
     justifyContent: "center",
-    alignItems: "flex-start",
+    alignItems: "center",
+    minHeight: "calc(100vh - 64px)",
     backgroundColor: "#f3f4f6",
+    padding: "24px",
   },
 
   card: {
@@ -239,7 +251,7 @@ const styles = {
     backgroundColor: "#ffffff",
     padding: "28px",
     borderRadius: "14px",
-    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)"
+    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)",
   },
 
   title: {
@@ -296,9 +308,19 @@ const styles = {
     gap: "14px",
   },
 
+  resultImage: {
+    width: "30%",
+    height: "30%",
+    objectFit: "cover",
+    borderRadius: "10px",
+    border: "2px solid #a31211",
+    maxHeight: "200px",
+  },
+
   resultRow: {
     display: "flex",
     justifyContent: "space-between",
+    gap: "12px",
     borderBottom: "1px solid #e5e7eb",
     paddingBottom: "6px",
   },
@@ -313,9 +335,8 @@ const styles = {
     fontSize: "21px",
     fontWeight: "600",
     color: "#000000",
+    textAlign: "right",
   },
 };
-
-
 
 export default BuscarUsuario;
