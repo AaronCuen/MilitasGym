@@ -355,8 +355,8 @@ const confirmarRenovacion = async (membresia_id) => {
       return;
     }
 
-    if (telefono && !/^\d{1,10}$/.test(telefono)) {
-      alert("El telefono solo debe contener numeros (maximo 10)");
+    if (telefono && !/^\d{10}$/.test(telefono)) {
+      alert("Si agregas telefono, debe tener exactamente 10 digitos numericos");
       return;
     }
 
@@ -1997,6 +1997,7 @@ estadoInactivo: {
 };
 
 export default Users;
+
 
 
 
