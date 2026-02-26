@@ -11,6 +11,41 @@ const INITIAL_FILTROS = {
   estado: "todos",
 };
 
+const fechaLocalISO = () => {
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dd = String(hoy.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const normalizarFechaInput = (fecha) => {
+  if (!fecha) return "";
+  return fecha.includes("T") ? fecha.split("T")[0] : fecha;
+};
+
+const obtenerEstadoLocal = (fechaFin) => {
+  const fechaFinNormalizada = normalizarFechaInput(fechaFin);
+  if (!fechaFinNormalizada) return "INACTIVO";
+  return fechaFinNormalizada >= fechaLocalISO() ? "ACTIVO" : "INACTIVO";
+};
+
+const normalizarEstadoUsuarios = (lista = []) =>
+  lista.map((u) => ({
+    ...u,
+    estado: obtenerEstadoLocal(u?.fecha_fin),
+  }));
+
+const aplicarFiltroEstadoLocal = (lista = [], estado = "todos") => {
+  if (estado === "activo") {
+    return lista.filter((u) => u.estado === "ACTIVO");
+  }
+  if (estado === "inactivo") {
+    return lista.filter((u) => u.estado === "INACTIVO");
+  }
+  return lista;
+};
+
 function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +74,7 @@ function Users() {
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
 
   const user = getStoredUser();
+  const isAdmin = user?.rol === "admin";
 
   const authHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -99,42 +135,6 @@ function Users() {
     const valor = usarSplit ? fecha.split("T")[0] : fecha;
     return new Date(`${valor}T00:00:00`).toLocaleDateString("es-MX");
   };
-
-  const fechaLocalISO = () => {
-    const hoy = new Date();
-    const yyyy = hoy.getFullYear();
-    const mm = String(hoy.getMonth() + 1).padStart(2, "0");
-    const dd = String(hoy.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const normalizarFechaInput = (fecha) => {
-    if (!fecha) return "";
-    return fecha.includes("T") ? fecha.split("T")[0] : fecha;
-  };
-
-  function obtenerEstadoLocal(fechaFin) {
-    const fechaFinNormalizada = normalizarFechaInput(fechaFin);
-    if (!fechaFinNormalizada) return "INACTIVO";
-    return fechaFinNormalizada >= fechaLocalISO() ? "ACTIVO" : "INACTIVO";
-  }
-
-  function normalizarEstadoUsuarios(lista = []) {
-    return lista.map((u) => ({
-      ...u,
-      estado: obtenerEstadoLocal(u?.fecha_fin),
-    }));
-  }
-
-  function aplicarFiltroEstadoLocal(lista = [], estado = "todos") {
-    if (estado === "activo") {
-      return lista.filter((u) => u.estado === "ACTIVO");
-    }
-    if (estado === "inactivo") {
-      return lista.filter((u) => u.estado === "INACTIVO");
-    }
-    return lista;
-  }
 
   const abrirModalRenovar = (usuario) => {
     const fechaVencimiento = normalizarFechaInput(usuario?.fecha_fin);
@@ -832,14 +832,16 @@ const confirmarRenovacion = async (membresia_id) => {
                         >
                           Ver
                         </button>
-                        <button
-                          style={rowDeleteBtnStyle}
-                          onMouseEnter={onButtonHoverIn}
-                          onMouseLeave={onButtonHoverOut}
-                          onClick={() => eliminarUsuario(u.id)}
-                        >
-                          Eliminar
-                        </button>
+                        {isAdmin && (
+                          <button
+                            style={rowDeleteBtnStyle}
+                            onMouseEnter={onButtonHoverIn}
+                            onMouseLeave={onButtonHoverOut}
+                            onClick={() => eliminarUsuario(u.id)}
+                          >
+                            Eliminar
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -133,7 +133,7 @@ function Login() {
         <div style={imageSectionStyle}></div>
 
         <div style={formSectionStyle}>
-          <div style={formContainerStyle}>
+          <form style={formContainerStyle} onSubmit={handleSubmit}>
             <img src={logo} alt="MG Logo" style={logoStyle} />
             <h2 style={titleStyle}>Hola! Estas de vuelta.</h2>
 
@@ -190,13 +190,13 @@ function Login() {
             )}
 
             <button
+              type="submit"
               style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
-              onClick={handleSubmit}
               disabled={loading}
             >
               {loading ? "Ingresando..." : "Iniciar sesion"}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

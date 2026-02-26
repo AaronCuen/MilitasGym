@@ -45,12 +45,6 @@ function RegisterUser() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => {
-    if (esManual && !form.fecha_fin) {
-      setForm((prev) => ({ ...prev, fecha_fin: fechaHoyISO() }));
-    }
-  }, [esManual, form.fecha_fin]);
-
   const previewImagen = useMemo(() => {
     if (!imagen) return "";
     return URL.createObjectURL(imagen);
@@ -103,6 +97,15 @@ function RegisterUser() {
     if (name === "email") {
       const emailRecortado = value.slice(0, 40);
       setForm({ ...form, email: emailRecortado });
+      return;
+    }
+
+    if (name === "membresia_id") {
+      setForm((prev) => ({
+        ...prev,
+        membresia_id: value,
+        fecha_fin: value === "4" ? prev.fecha_fin || fechaHoyISO() : prev.fecha_fin,
+      }));
       return;
     }
 
