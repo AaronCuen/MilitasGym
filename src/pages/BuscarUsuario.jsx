@@ -132,7 +132,11 @@ function BuscarUsuario() {
   };
 
   const onListo = () => {
-    window.location.reload();
+    setUsuario(null);
+    setMensaje("");
+    setId("");
+    setEstadoMembresia("SIN MEMBRESIA");
+    setFechaVencimiento("");
   };
 
   const isMobile = viewportWidth < 768;
@@ -194,7 +198,13 @@ function BuscarUsuario() {
         <div style={cardStyle}>
           <h2 style={styles.title}>Consultar usuario</h2>
 
-          <div style={styles.form}>
+          <form
+            style={styles.form}
+            onSubmit={(e) => {
+              e.preventDefault();
+              buscarUsuario();
+            }}
+          >
             <input
               type="number"
               placeholder="ID del usuario"
@@ -205,18 +215,24 @@ function BuscarUsuario() {
               onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
 
-            <button onClick={buscarUsuario} style={styles.button}>
+            <button type="submit" style={styles.button}>
               Buscar
             </button>
-          </div>
+          </form>
 
-          {mensaje && (
+          {mensaje && !usuario && (
             <p style={{ ...styles.message, color: mensaje.includes("registrada") ? "#15803d" : "#b91c1c" }}>
               {mensaje}
             </p>
           )}
+        </div>
+      </main>
 
-          {usuario && (
+      {usuario && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <h3 style={styles.modalTitle}>Resultado de busqueda</h3>
+
             <div style={styles.result}>
               {usuario.foto && (
                 <div style={{ textAlign: "center", marginTop: "10px" }}>
@@ -242,14 +258,20 @@ function BuscarUsuario() {
                 labelStyle={labelStyle}
                 valueStyle={valueStyle}
               />
-
-              <button onClick={onListo} style={styles.doneButton}>
-                Listo
-              </button>
             </div>
-          )}
+
+            {mensaje && (
+              <p style={{ ...styles.message, marginTop: "16px", color: mensaje.includes("registrada") ? "#15803d" : "#b91c1c" }}>
+                {mensaje}
+              </p>
+            )}
+
+            <button onClick={onListo} style={styles.modalButton}>
+              Listo
+            </button>
+          </div>
         </div>
-      </main>
+      )}
     </>
   );
 }
@@ -352,17 +374,6 @@ const styles = {
     cursor: "pointer",
   },
 
-  doneButton: {
-    marginTop: "10px",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "none",
-    backgroundColor: "#1f2937",
-    color: "#fff",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-
   message: {
     marginTop: "16px",
     textAlign: "center",
@@ -378,6 +389,52 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "14px",
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+    padding: "16px",
+    boxSizing: "border-box",
+  },
+
+  modalCard: {
+    width: "100%",
+    maxWidth: "560px",
+    backgroundColor: "#ffffff",
+    borderRadius: "14px",
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 20px 45px rgba(0,0,0,0.28)",
+    padding: "22px",
+  },
+
+  modalTitle: {
+    margin: 0,
+    marginBottom: "14px",
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
+  },
+
+  modalButton: {
+    marginTop: "16px",
+    width: "100%",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: "#1f2937",
+    color: "#ffffff",
+    fontWeight: "600",
+    cursor: "pointer",
   },
 
   resultImage: {
