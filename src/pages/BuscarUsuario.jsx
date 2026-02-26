@@ -12,7 +12,33 @@ function BuscarUsuario() {
   const [id, setId] = useState("");
   const [usuario, setUsuario] = useState(null);
   const [mensaje, setMensaje] = useState("");
+  const [estadoMembresia, setEstadoMembresia] = useState("SIN MEMBRESIA");
+  const [fechaVencimiento, setFechaVencimiento] = useState("");
   const user = getStoredUser();
+
+  const normalizarFechaInput = (fecha) => {
+    if (!fecha) return "";
+    return fecha.includes("T") ? fecha.split("T")[0] : fecha;
+  };
+
+  const formatearFecha = (fechaISO) => {
+    if (!fechaISO) return "-";
+    const [yyyy, mm, dd] = fechaISO.split("-");
+    if (!yyyy || !mm || !dd) return fechaISO;
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const calcularDiasRestantes = (fechaISO) => {
+    if (!fechaISO) return null;
+    const [yyyy, mm, dd] = fechaISO.split("-").map(Number);
+    if (!yyyy || !mm || !dd) return null;
+
+    const hoy = new Date();
+    const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const fechaFinLocal = new Date(yyyy, mm - 1, dd);
+    const diffMs = fechaFinLocal.getTime() - hoyLocal.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  };
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -24,6 +50,8 @@ function BuscarUsuario() {
     if (!id) {
       setMensaje("Ingresa un ID");
       setUsuario(null);
+      setEstadoMembresia("SIN MEMBRESIA");
+      setFechaVencimiento("");
       return;
     }
 
@@ -46,6 +74,8 @@ function BuscarUsuario() {
       if (!res.ok) {
         setMensaje("Usuario no encontrado");
         setUsuario(null);
+        setEstadoMembresia("SIN MEMBRESIA");
+        setFechaVencimiento("");
         return;
       }
 
@@ -61,12 +91,16 @@ function BuscarUsuario() {
       const insData = await insRes.json();
 
       let estado = "Sin membresia";
+      let fechaFinISO = "";
 
       if (insRes.ok && insData?.fecha_fin) {
-        const hoy = new Date();
-        const fechaFin = new Date(insData.fecha_fin);
-        estado = fechaFin >= hoy ? "ACTIVA" : "VENCIDA";
+        fechaFinISO = normalizarFechaInput(insData.fecha_fin);
+        const diasRestantes = calcularDiasRestantes(fechaFinISO);
+        estado = diasRestantes !== null && diasRestantes >= 0 ? "ACTIVA" : "VENCIDA";
       }
+
+      setEstadoMembresia(estado.toUpperCase());
+      setFechaVencimiento(fechaFinISO);
 
       if (estado === "ACTIVA") {
         const asisRes = await fetch(`${API_BASE_URL}/asistencia/${id}`, {
@@ -92,7 +126,13 @@ function BuscarUsuario() {
       console.error(error);
       setMensaje("Error de servidor");
       setUsuario(null);
+      setEstadoMembresia("SIN MEMBRESIA");
+      setFechaVencimiento("");
     }
+  };
+
+  const onListo = () => {
+    window.location.reload();
   };
 
   const isMobile = viewportWidth < 768;
@@ -134,6 +174,14 @@ function BuscarUsuario() {
     ...styles.resultImage,
     ...(isMobile ? { width: "100%", height: "auto", maxHeight: "220px" } : {}),
   };
+
+  const diasRestantes = calcularDiasRestantes(fechaVencimiento);
+  const fechaVencimientoColor =
+    fechaVencimiento && diasRestantes !== null && diasRestantes <= 2 ? "#b91c1c" : "#000000";
+  const detalleVencimiento =
+    fechaVencimiento && diasRestantes !== null && diasRestantes >= 0
+      ? ` (Faltan ${diasRestantes} dia${diasRestantes === 1 ? "" : "s"})`
+      : "";
 
   return (
     <>
@@ -182,11 +230,22 @@ function BuscarUsuario() {
               <ResultRow label="Telefono" value={usuario.telefono} labelStyle={labelStyle} valueStyle={valueStyle} />
               <ResultRow label="Email" value={usuario.email} labelStyle={labelStyle} valueStyle={valueStyle} />
               <ResultRow
-                label="Estado de membresia"
-                value={mensaje.includes("ACTIVA") ? "ACTIVA" : mensaje.includes("VENCIDA") ? "VENCIDA" : "SIN MEMBRESIA"}
+                label="Fecha de vencimiento"
+                value={`${formatearFecha(fechaVencimiento)}${detalleVencimiento}`}
+                color={fechaVencimientoColor}
                 labelStyle={labelStyle}
                 valueStyle={valueStyle}
               />
+              <ResultRow
+                label="Estado de membresia"
+                value={estadoMembresia}
+                labelStyle={labelStyle}
+                valueStyle={valueStyle}
+              />
+
+              <button onClick={onListo} style={styles.doneButton}>
+                Listo
+              </button>
             </div>
           )}
         </div>
@@ -290,6 +349,17 @@ const styles = {
     background: "linear-gradient(to right, #580c0c, #6e0101)",
     color: "#fff",
     fontWeight: "bold",
+    cursor: "pointer",
+  },
+
+  doneButton: {
+    marginTop: "10px",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: "#1f2937",
+    color: "#fff",
+    fontWeight: "600",
     cursor: "pointer",
   },
 
