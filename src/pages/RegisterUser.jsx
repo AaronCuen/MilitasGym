@@ -192,13 +192,12 @@ function RegisterUser() {
       const bodyData = {
         ...form,
         membresia_id: Number(form.membresia_id),
-        fecha_inicio: esManual ? fechaInicioManual : form.fecha_inicio,
+        fecha_inicio: esManual ? fechaInicioManual : fechaHoyISO(),
         fecha_fin: esManual ? fechaFinManual : form.fecha_fin,
         foto: fotoUrl,
       };
 
       if (!esManual) {
-        delete bodyData.fecha_inicio;
         delete bodyData.fecha_fin;
       }
 
