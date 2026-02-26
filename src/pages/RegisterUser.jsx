@@ -133,8 +133,8 @@ function RegisterUser() {
         return;
       }
 
-      if (fechaFinManual <= fechaInicioManual) {
-        setMensaje("La fecha de vencimiento debe ser mayor a la fecha de inicio");
+      if (fechaFinManual < fechaInicioManual) {
+        setMensaje("La fecha de vencimiento no puede ser menor a la fecha de inicio");
         return;
       }
     }
@@ -544,4 +544,5 @@ const styles = {
 };
 
 export default RegisterUser;
+
 

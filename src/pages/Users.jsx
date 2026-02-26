@@ -55,7 +55,7 @@ function Users() {
       `${API_BASE_URL}/usuarios-con-membresia`,
       withAuth()
     );
-    setUsuarios(res.data);
+    setUsuarios(normalizarEstadoUsuarios(res.data));
   }, [withAuth]);
 
   const onButtonHoverIn = (e) => {
@@ -112,6 +112,29 @@ function Users() {
     if (!fecha) return "";
     return fecha.includes("T") ? fecha.split("T")[0] : fecha;
   };
+
+  function obtenerEstadoLocal(fechaFin) {
+    const fechaFinNormalizada = normalizarFechaInput(fechaFin);
+    if (!fechaFinNormalizada) return "INACTIVO";
+    return fechaFinNormalizada >= fechaLocalISO() ? "ACTIVO" : "INACTIVO";
+  }
+
+  function normalizarEstadoUsuarios(lista = []) {
+    return lista.map((u) => ({
+      ...u,
+      estado: obtenerEstadoLocal(u?.fecha_fin),
+    }));
+  }
+
+  function aplicarFiltroEstadoLocal(lista = [], estado = "todos") {
+    if (estado === "activo") {
+      return lista.filter((u) => u.estado === "ACTIVO");
+    }
+    if (estado === "inactivo") {
+      return lista.filter((u) => u.estado === "INACTIVO");
+    }
+    return lista;
+  }
 
   const abrirModalRenovar = (usuario) => {
     const fechaVencimiento = normalizarFechaInput(usuario?.fecha_fin);
@@ -206,15 +229,17 @@ const confirmarRenovacion = async (membresia_id) => {
 
     setLoading(true);
     try {
+      const paramsConsulta = { ...nuevosFiltros, estado: "todos" };
       const res = await axios.get(
         `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
         {
-          params: nuevosFiltros,
+          params: paramsConsulta,
           ...withAuth(),
         }
       );
 
-      let data = res.data;
+      let data = normalizarEstadoUsuarios(res.data);
+      data = aplicarFiltroEstadoLocal(data, estado);
       console.log("ESTADO ACTUAL:", filtros.estado);
 
 
@@ -412,15 +437,17 @@ const confirmarRenovacion = async (membresia_id) => {
   const buscarUsuarios = async () => {
     setLoading(true);
     try {
+      const paramsConsulta = { ...filtros, estado: "todos" };
       const res = await axios.get(
         `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
         {
-          params: filtros,
+          params: paramsConsulta,
           ...withAuth(),
         }
       );
 
-      setUsuarios(res.data);
+      const data = normalizarEstadoUsuarios(res.data);
+      setUsuarios(aplicarFiltroEstadoLocal(data, filtros.estado));
     } catch (error) {
       console.log(error.response?.data || error.message);
       alert("Error al buscar usuarios");
