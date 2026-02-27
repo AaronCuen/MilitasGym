@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { getStoredUser } from "../utils/storage";
+import { clearSession, getStoredUser, isTokenValid, markSessionExpired } from "../utils/storage";
 
 function Layout() {
   const location = useLocation();
@@ -23,13 +23,42 @@ function Layout() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("rol");
-    navigate("/");
-  };
+  const handleLogout = useCallback(() => {
+    clearSession();
+    navigate("/", { replace: true });
+  }, [navigate]);
 
+  useEffect(() => {
+    const validateSession = () => {
+      const token = localStorage.getItem("token");
+      if (!isTokenValid(token)) {
+        markSessionExpired();
+        clearSession();
+        navigate("/", { replace: true });
+        return false;
+      }
+      return true;
+    };
+
+    validateSession();
+
+    const intervalId = window.setInterval(validateSession, 30000);
+    const onFocus = () => validateSession();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        validateSession();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [navigate]);
   const handleNavClick = () => {
     if (isMobile) {
       setSidebarOpen(false);

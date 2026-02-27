@@ -4,6 +4,7 @@ import gymImage from "../assets/Background.png";
 import blurredback from "../assets/blurredbackground.png";
 import logo from "../assets/Logo.png";
 import { API_BASE_URL } from "../config/api";
+import { clearSession, consumeSessionNotice, isTokenValid } from "../utils/storage";
 
 function Login() {
   const navigate = useNavigate();
@@ -21,10 +22,22 @@ function Login() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
+    if (!token) return;
+
+    if (isTokenValid(token)) {
       navigate("/home", { replace: true });
+      return;
     }
+
+    clearSession();
+    setServerError("Tu sesion expiro. Inicia sesion nuevamente.");
   }, [navigate]);
+  useEffect(() => {
+    const notice = consumeSessionNotice();
+    if (notice) {
+      setServerError(notice);
+    }
+  }, []);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);

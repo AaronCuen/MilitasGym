@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { getStoredUser } from "../utils/storage";
+import { clearSession, getStoredUser, markSessionExpired } from "../utils/storage";
 
 function BuscarUsuario() {
   const navigate = useNavigate();
@@ -26,6 +26,14 @@ function BuscarUsuario() {
     const [yyyy, mm, dd] = fechaISO.split("-");
     if (!yyyy || !mm || !dd) return fechaISO;
     return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const handleUnauthorized = (status) => {
+    if (status !== 401) return false;
+    markSessionExpired();
+    clearSession();
+    navigate("/", { replace: true });
+    return true;
   };
 
   const calcularDiasRestantes = (fechaISO) => {
@@ -69,6 +77,7 @@ function BuscarUsuario() {
         },
       });
 
+      if (handleUnauthorized(res.status)) return;
       const data = await res.json();
 
       if (!res.ok) {
@@ -88,6 +97,7 @@ function BuscarUsuario() {
         },
       });
 
+      if (handleUnauthorized(insRes.status)) return;
       const insData = await insRes.json();
 
       let estado = "Sin membresia";
@@ -111,6 +121,7 @@ function BuscarUsuario() {
           },
         });
 
+        if (handleUnauthorized(asisRes.status)) return;
         const asisData = await asisRes.json();
 
         if (!asisRes.ok) {

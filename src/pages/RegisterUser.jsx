@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { getStoredUser } from "../utils/storage";
+import { clearSession, getStoredUser, markSessionExpired } from "../utils/storage";
 
 function RegisterUser() {
   const navigate = useNavigate();
@@ -214,6 +214,13 @@ function RegisterUser() {
       });
 
       const data = await res.json();
+
+      if (res.status === 401) {
+        markSessionExpired();
+        clearSession();
+        navigate("/", { replace: true });
+        return;
+      }
 
       if (!res.ok) {
         setMensaje(data.message || "Error al registrar");

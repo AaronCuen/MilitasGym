@@ -1,28 +1,13 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { clearSession, isTokenValid, markSessionExpired } from "../utils/storage";
 
 function PrivateRoute() {
   const token = localStorage.getItem("token");
 
-  if (!token) {
-    return <Navigate to="/" />;
-  }
-
-  let isTokenValid = false;
-
-  try {
-    const decoded = jwtDecode(token);
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    isTokenValid = !decoded?.exp || decoded.exp > nowInSeconds;
-  } catch {
-    isTokenValid = false;
-  }
-
-  if (!isTokenValid) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("rol");
-    return <Navigate to="/" />;
+  if (!isTokenValid(token)) {
+    markSessionExpired();
+    clearSession();
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

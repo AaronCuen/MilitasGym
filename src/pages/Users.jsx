@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
 import { getStoredUser } from "../utils/storage";
@@ -49,6 +49,8 @@ const aplicarFiltroEstadoLocal = (lista = [], estado = "todos") => {
 function Users() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const USUARIOS_POR_PAGINA = 50;
+  const [paginaActual, setPaginaActual] = useState(1);
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
@@ -72,6 +74,12 @@ function Users() {
 
 
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
+  const totalPaginas = Math.max(1, Math.ceil(usuarios.length / USUARIOS_POR_PAGINA));
+  const indiceInicioPagina = (paginaActual - 1) * USUARIOS_POR_PAGINA;
+  const usuariosPaginados = usuarios.slice(
+    indiceInicioPagina,
+    indiceInicioPagina + USUARIOS_POR_PAGINA
+  );
 
   const user = getStoredUser();
   const isAdmin = user?.rol === "admin";
@@ -92,6 +100,7 @@ function Users() {
       withAuth()
     );
     setUsuarios(normalizarEstadoUsuarios(res.data));
+    setPaginaActual(1);
   }, [withAuth]);
 
   const onButtonHoverIn = (e) => {
@@ -187,12 +196,13 @@ const confirmarRenovacion = async (membresia_id) => {
         setFechaInicioManual(fechaInicio);
       }
 
-      await axios.put(
-        `${API_BASE_URL}/usuarios/${usuarioRenovar.id}/inscripcion`,
+      await axios.post(
+        `${API_BASE_URL}/inscripciones/renovar`,
         {
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFinManual,
+          usuario_id: usuarioRenovar.id,
           membresia_id,
+          fecha_inicio_manual: fechaInicio,
+          fecha_fin_manual: fechaFinManual,
         },
         withAuth()
       );
@@ -261,6 +271,7 @@ const confirmarRenovacion = async (membresia_id) => {
     }*/
 
       setUsuarios(data);
+      setPaginaActual(1);
     } catch (error) {
       console.log(error.response?.data || error.message);
       alert("Error al filtrar usuarios");
@@ -297,7 +308,7 @@ const confirmarRenovacion = async (membresia_id) => {
       setMostrarModalFoto(false);
       setMostrarModal(true);
     } catch {
-      alert("Error al obtener información del usuario");
+      alert("Error al obtener informaciÃ³n del usuario");
     }
   };
 
@@ -325,7 +336,7 @@ const confirmarRenovacion = async (membresia_id) => {
   };
 
   const eliminarUsuario = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
+    if (!window.confirm("Â¿Seguro que deseas eliminar este usuario?")) return;
 
     try {
       await axios.delete(
@@ -448,6 +459,7 @@ const confirmarRenovacion = async (membresia_id) => {
 
       const data = normalizarEstadoUsuarios(res.data);
       setUsuarios(aplicarFiltroEstadoLocal(data, filtros.estado));
+      setPaginaActual(1);
     } catch (error) {
       console.log(error.response?.data || error.message);
       alert("Error al buscar usuarios");
@@ -483,6 +495,10 @@ const confirmarRenovacion = async (membresia_id) => {
       URL.revokeObjectURL(objectUrl);
     };
   }, [imagenEditar]);
+
+  useEffect(() => {
+    setPaginaActual((prev) => (prev > totalPaginas ? totalPaginas : prev));
+  }, [totalPaginas]);
 
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth < 1024;
@@ -630,6 +646,14 @@ const confirmarRenovacion = async (membresia_id) => {
     ...styles.btnDelete,
     ...(isCompactFilters ? { padding: "6px 10px" } : {}),
   };
+  const paginationStyle = {
+    ...styles.paginationWrap,
+    ...(isMobile ? { flexDirection: "column", alignItems: "stretch" } : {}),
+  };
+  const paginationButtonStyle = {
+    ...styles.paginationButton,
+    ...(isMobile ? { width: "100%" } : {}),
+  };
   const modalStyle = {
     ...styles.editModal,
     ...(isMobile ? { width: "95vw", padding: "14px" } : isTablet ? { width: "86vw" } : {}),
@@ -764,7 +788,7 @@ const confirmarRenovacion = async (membresia_id) => {
           ) : usuarios.length === 0 ? (
             <p>No hay usuarios registrados.</p>
           ) : (
-            
+            <>
             <div style={tableContainerStyle}>
             <table style={tableStyle}>
               <thead>
@@ -772,7 +796,7 @@ const confirmarRenovacion = async (membresia_id) => {
                   <th style={thStyle}>ID</th>
                   <th style={thStyle}>Nombre</th>
                   <th style={thStyle}>Apellido</th>
-                  <th style={thStyle}>Teléfono</th>
+                  <th style={thStyle}>TelÃ©fono</th>
                   <th style={thStyle}>Email</th>
                   <th style={thStyle}>Estado</th>
                   <th style={thStyle}>Vence</th>
@@ -783,7 +807,7 @@ const confirmarRenovacion = async (membresia_id) => {
               </thead>
 
               <tbody>
-                {usuarios.map((u, index) => (
+                {usuariosPaginados.map((u, index) => (
               <tr
                 key={u.id}
                 style={{
@@ -846,9 +870,41 @@ const confirmarRenovacion = async (membresia_id) => {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+              </tbody>`r`n            </table>
            </div>
+
+           {totalPaginas > 1 && (
+             <div style={paginationStyle}>
+               <button
+                 style={{
+                   ...paginationButtonStyle,
+                   ...(paginaActual === 1 ? styles.paginationButtonDisabled : {}),
+                 }}
+                 onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                 disabled={paginaActual === 1}
+               >
+                 Anterior
+               </button>
+
+               <span style={styles.paginationInfo}>
+                 Pagina {paginaActual} de {totalPaginas}
+               </span>
+
+               <button
+                 style={{
+                   ...paginationButtonStyle,
+                   ...(paginaActual === totalPaginas ? styles.paginationButtonDisabled : {}),
+                 }}
+                 onClick={() =>
+                   setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                 }
+                 disabled={paginaActual === totalPaginas}
+               >
+                 Siguiente
+               </button>
+             </div>
+           )}
+           </>
           )}
         </div>
 
@@ -1108,7 +1164,7 @@ const confirmarRenovacion = async (membresia_id) => {
     <div style={modalStyle}>
       <div style={styles.editHeader}>
         <h3 style={styles.editTitle}>Editar Usuario</h3>
-        <p style={styles.editSubtitle}>Actualiza la información del perfil.</p>
+        <p style={styles.editSubtitle}>Actualiza la informaciÃ³n del perfil.</p>
       </div>
 
       <div style={styles.editAvatarWrap}>
@@ -1165,7 +1221,7 @@ const confirmarRenovacion = async (membresia_id) => {
         </div>
 
         <div style={styles.editField}>
-          <label style={styles.editLabel}>Teléfono</label>
+          <label style={styles.editLabel}>TelÃ©fono</label>
           <input
             type="tel"
             value={usuarioEditando.telefono || ""}
@@ -1414,7 +1470,7 @@ btnCloseSmall: {
     gap: "8px",
     marginBottom: "14px",
     flexWrap: "nowrap",
-    alignItems: "flex-end", // 👈 ESTA LÍNEA
+    alignItems: "flex-end", // ðŸ‘ˆ ESTA LÃNEA
   },
 
   right: {
@@ -1428,7 +1484,7 @@ btnCloseSmall: {
   height: "40px",
   backgroundColor: "#e5e7eb",
   display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
+  alignItems: "center",          // ðŸ”¥ centra verticalmente
   justifyContent: "space-between",
   padding: "0 24px",             // solo horizontal
   borderBottom: "1px solid #d1d5db",
@@ -1440,15 +1496,15 @@ btnCloseSmall: {
   fontSize: "16px",
   fontWeight: "600",
   color: "#111827",
-  margin: 0,                     // 🔥 elimina margen default
-  lineHeight: "1",               // 🔥 evita que estire altura
+  margin: 0,                     // ðŸ”¥ elimina margen default
+  lineHeight: "1",               // ðŸ”¥ evita que estire altura
   display: "flex",
   alignItems: "center",
   },
 
   topRight: {
   display: "flex",
-  alignItems: "center",          // 🔥 centra verticalmente
+  alignItems: "center",          // ðŸ”¥ centra verticalmente
   gap: "16px",
   },
 
@@ -1502,7 +1558,7 @@ btnCloseSmall: {
   },
 
   th: {
-    backgroundColor: "#991b1b", // rojo más elegante
+    backgroundColor: "#991b1b", // rojo mÃ¡s elegante
     color: "#ffffff",
     padding: "14px",
     textAlign: "left",
@@ -1561,8 +1617,8 @@ modalOverlay: {
 
 modal: {
   background: "#fff",
-  padding: "40px",                 // más espacio interno
-  borderRadius: "16px",            // bordes más grandes
+  padding: "40px",                 // mÃ¡s espacio interno
+  borderRadius: "16px",            // bordes mÃ¡s grandes
   width: "700px",                  // ancho grande
   maxWidth: "90vw",                // no se sale de pantalla
   maxHeight: "85vh",               // alto grande
@@ -1796,7 +1852,7 @@ btnRenew: {
   padding: "10px 18px",
   borderRadius: "8px",
   cursor: "pointer",
-  marginTop: "30px", // 🔥 separación real del texto
+  marginTop: "30px", // ðŸ”¥ separaciÃ³n real del texto
   fontWeight: "600",
   display: "block",
 },
@@ -1878,10 +1934,10 @@ renewCard: {
   boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
 },
 renewCardHover: {
-  border: "1px solid #9ca3af", // gris más visible
+  border: "1px solid #9ca3af", // gris mÃ¡s visible
   backgroundColor: "#f3f4f6",  // fondo ligeramente gris
-  boxShadow: "0 8px 20px rgba(0,0,0,0.12)", // sombra más marcada
-  transform: "translateY(-3px)", // efecto elevación
+  boxShadow: "0 8px 20px rgba(0,0,0,0.12)", // sombra mÃ¡s marcada
+  transform: "translateY(-3px)", // efecto elevaciÃ³n
 },
 
 renewCardTitle: {
@@ -1974,6 +2030,35 @@ dateLabel: {
   color: "#6b7280",
   fontWeight: "500",
 },
+paginationWrap: {
+  marginTop: "14px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: "10px",
+},
+paginationButton: {
+  backgroundColor: "#1e293b",
+  color: "#ffffff",
+  border: "1px solid #1e293b",
+  borderRadius: "8px",
+  padding: "8px 12px",
+  fontSize: "13px",
+  fontWeight: "600",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+},
+paginationButtonDisabled: {
+  backgroundColor: "#94a3b8",
+  borderColor: "#94a3b8",
+  cursor: "not-allowed",
+  opacity: 0.8,
+},
+paginationInfo: {
+  fontSize: "13px",
+  color: "#334155",
+  fontWeight: "600",
+},
 estadoActivo: {
   color: "#166534",
   backgroundColor: "#dcfce7",
@@ -1999,6 +2084,7 @@ estadoInactivo: {
 };
 
 export default Users;
+
 
 
 
