@@ -59,6 +59,39 @@ const getPresetRange = (presetKey) => {
   return { start: toISODateLocal(start), end: toISODateLocal(end) };
 };
 
+const resolveOptionalDateRange = (fromRaw, toRaw, fallbackDate) => {
+  const fromValid = parseISODateLocal(fromRaw) ? fromRaw : "";
+  const toValid = parseISODateLocal(toRaw) ? toRaw : "";
+
+  let start = fromValid || toValid || fallbackDate;
+  let end = toValid || start;
+
+  if (start > end) {
+    [start, end] = [end, start];
+  }
+
+  return { start, end };
+};
+
+const buildDateRangeDescending = (startISO, endISO) => {
+  const start = parseISODateLocal(startISO);
+  const end = parseISODateLocal(endISO);
+  if (!start || !end) return [];
+
+  const dates = [];
+  const cursor = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while (cursor >= start) {
+    dates.push(toISODateLocal(cursor));
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return dates;
+};
+
+const getRangeLabel = (startISO, endISO) =>
+  startISO === endISO
+    ? formatDate(startISO)
+    : `${formatDate(startISO)} - ${formatDate(endISO)}`;
+
 function Home() {
   const user = getStoredUser();
   const navigate = useNavigate();
@@ -73,8 +106,10 @@ function Home() {
   const [preset, setPreset] = useState("month");
   const [fechaInicio, setFechaInicio] = useState(defaultRange.start);
   const [fechaFin, setFechaFin] = useState(defaultRange.end);
-  const [fechaDiaAsisReg, setFechaDiaAsisReg] = useState(hoyISO);
-  const [fechaDiaInscVenc, setFechaDiaInscVenc] = useState(hoyISO);
+  const [fechaDiaAsisRegDesde, setFechaDiaAsisRegDesde] = useState(hoyISO);
+  const [fechaDiaAsisRegHasta, setFechaDiaAsisRegHasta] = useState("");
+  const [fechaDiaInscVencDesde, setFechaDiaInscVencDesde] = useState(hoyISO);
+  const [fechaDiaInscVencHasta, setFechaDiaInscVencHasta] = useState("");
 
   const [tab1Data, setTab1Data] = useState({
     totales: { asistencias: 0, registros: 0 },
@@ -152,6 +187,16 @@ function Home() {
     return inicio <= fin;
   }, [fechaInicio, fechaFin]);
 
+  const tab1Range = useMemo(
+    () => resolveOptionalDateRange(fechaDiaAsisRegDesde, fechaDiaAsisRegHasta, hoyISO),
+    [fechaDiaAsisRegDesde, fechaDiaAsisRegHasta, hoyISO]
+  );
+
+  const tab2Range = useMemo(
+    () => resolveOptionalDateRange(fechaDiaInscVencDesde, fechaDiaInscVencHasta, hoyISO),
+    [fechaDiaInscVencDesde, fechaDiaInscVencHasta, hoyISO]
+  );
+
   const fetchResumen = async ({ dia, usuarioId = null }) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -196,8 +241,12 @@ function Home() {
       setLoadingTab1(false);
       return;
     }
-    if (!fechaDiaAsisReg) {
-      setErrorTab1("Selecciona un dia.");
+    if (
+      fechaDiaAsisRegDesde &&
+      fechaDiaAsisRegHasta &&
+      fechaDiaAsisRegHasta < fechaDiaAsisRegDesde
+    ) {
+      setErrorTab1("La fecha Hasta no puede ser menor que la fecha Desde.");
       setLoadingTab1(false);
       return;
     }
@@ -205,24 +254,51 @@ function Home() {
     try {
       setLoadingTab1(true);
       setErrorTab1("");
-      const data = await fetchResumen({ dia: fechaDiaAsisReg });
-      if (!data || reqId !== tab1ReqRef.current) return;
+
+      const { start, end } = resolveOptionalDateRange(
+        fechaDiaAsisRegDesde,
+        fechaDiaAsisRegHasta,
+        hoyISO
+      );
+      const dias = buildDateRangeDescending(start, end);
+      const resultados = await Promise.all(
+        dias.map((dia) => fetchResumen({ dia }))
+      );
+      if (reqId !== tab1ReqRef.current) return;
+
+      const asistencias = [];
+      const registros = [];
+      let totalAsistencias = 0;
+      let totalRegistros = 0;
+
+      for (const data of resultados) {
+        if (!data) return;
+
+        const asistenciasDia = data?.detalle?.asistencias_dia || [];
+        const registrosDia = data?.detalle?.registros_dia || [];
+
+        asistencias.push(...asistenciasDia);
+        registros.push(...registrosDia);
+
+        totalAsistencias += Number(
+          data?.totales_dia?.asistencias ?? asistenciasDia.length ?? 0
+        );
+        totalRegistros += Number(
+          data?.totales_dia?.registros ?? registrosDia.length ?? 0
+        );
+      }
 
       setTab1Data({
         totales: {
-          asistencias: Number(
-            data?.totales_dia?.asistencias ?? data?.detalle?.asistencias_dia?.length ?? 0
-          ),
-          registros: Number(
-            data?.totales_dia?.registros ?? data?.detalle?.registros_dia?.length ?? 0
-          ),
+          asistencias: totalAsistencias,
+          registros: totalRegistros,
         },
-        asistencias: data?.detalle?.asistencias_dia || [],
-        registros: data?.detalle?.registros_dia || [],
+        asistencias,
+        registros,
       });
     } catch (err) {
       if (reqId !== tab1ReqRef.current) return;
-      setErrorTab1(err.message || "Error cargando datos del dia");
+      setErrorTab1(err.message || "Error cargando datos de asistencias/registros");
     } finally {
       if (reqId === tab1ReqRef.current) {
         setLoadingTab1(false);
@@ -238,8 +314,12 @@ function Home() {
       setLoadingTab2(false);
       return;
     }
-    if (!fechaDiaInscVenc) {
-      setErrorTab2("Selecciona un dia.");
+    if (
+      fechaDiaInscVencDesde &&
+      fechaDiaInscVencHasta &&
+      fechaDiaInscVencHasta < fechaDiaInscVencDesde
+    ) {
+      setErrorTab2("La fecha Hasta no puede ser menor que la fecha Desde.");
       setLoadingTab2(false);
       return;
     }
@@ -247,24 +327,51 @@ function Home() {
     try {
       setLoadingTab2(true);
       setErrorTab2("");
-      const data = await fetchResumen({ dia: fechaDiaInscVenc });
-      if (!data || reqId !== tab2ReqRef.current) return;
+
+      const { start, end } = resolveOptionalDateRange(
+        fechaDiaInscVencDesde,
+        fechaDiaInscVencHasta,
+        hoyISO
+      );
+      const dias = buildDateRangeDescending(start, end);
+      const resultados = await Promise.all(
+        dias.map((dia) => fetchResumen({ dia }))
+      );
+      if (reqId !== tab2ReqRef.current) return;
+
+      const inscripciones = [];
+      const vencimientos = [];
+      let totalInscripciones = 0;
+      let totalVencimientos = 0;
+
+      for (const data of resultados) {
+        if (!data) return;
+
+        const inscripcionesDia = data?.detalle?.inscripciones_dia || [];
+        const vencimientosDia = data?.detalle?.vencimientos_dia || [];
+
+        inscripciones.push(...inscripcionesDia);
+        vencimientos.push(...vencimientosDia);
+
+        totalInscripciones += Number(
+          data?.totales_dia?.inscripciones ?? inscripcionesDia.length ?? 0
+        );
+        totalVencimientos += Number(
+          data?.totales_dia?.vencimientos ?? vencimientosDia.length ?? 0
+        );
+      }
 
       setTab2Data({
         totales: {
-          inscripciones: Number(
-            data?.totales_dia?.inscripciones ?? data?.detalle?.inscripciones_dia?.length ?? 0
-          ),
-          vencimientos: Number(
-            data?.totales_dia?.vencimientos ?? data?.detalle?.vencimientos_dia?.length ?? 0
-          ),
+          inscripciones: totalInscripciones,
+          vencimientos: totalVencimientos,
         },
-        inscripciones: data?.detalle?.inscripciones_dia || [],
-        vencimientos: data?.detalle?.vencimientos_dia || [],
+        inscripciones,
+        vencimientos,
       });
     } catch (err) {
       if (reqId !== tab2ReqRef.current) return;
-      setErrorTab2(err.message || "Error cargando inscripciones/vencimientos del dia");
+      setErrorTab2(err.message || "Error cargando inscripciones/vencimientos");
     } finally {
       if (reqId === tab2ReqRef.current) {
         setLoadingTab2(false);
@@ -308,33 +415,52 @@ function Home() {
 
   useEffect(() => {
     if (activeTab === "tab1") loadTab1();
-  }, [activeTab, fechaDiaAsisReg, fechaInicio, fechaFin]);
+  }, [activeTab, fechaDiaAsisRegDesde, fechaDiaAsisRegHasta, fechaInicio, fechaFin]);
 
   useEffect(() => {
     if (activeTab === "tab2") loadTab2();
-  }, [activeTab, fechaDiaInscVenc, fechaInicio, fechaFin]);
+  }, [activeTab, fechaDiaInscVencDesde, fechaDiaInscVencHasta, fechaInicio, fechaFin]);
 
   useEffect(() => {
     if (activeTab === "tab3") loadTab3();
   }, [activeTab, fechaInicio, fechaFin]);
 
-  useEffect(() => setPageAsistenciasDia(1), [tab1Data.asistencias, fechaDiaAsisReg]);
-  useEffect(() => setPageRegistrosDia(1), [tab1Data.registros, fechaDiaAsisReg]);
-  useEffect(() => setPageInscripcionesDia(1), [tab2Data.inscripciones, fechaDiaInscVenc]);
-  useEffect(() => setPageVencimientosDia(1), [tab2Data.vencimientos, fechaDiaInscVenc]);
+  useEffect(
+    () => setPageAsistenciasDia(1),
+    [tab1Data.asistencias, fechaDiaAsisRegDesde, fechaDiaAsisRegHasta]
+  );
+  useEffect(
+    () => setPageRegistrosDia(1),
+    [tab1Data.registros, fechaDiaAsisRegDesde, fechaDiaAsisRegHasta]
+  );
+  useEffect(
+    () => setPageInscripcionesDia(1),
+    [tab2Data.inscripciones, fechaDiaInscVencDesde, fechaDiaInscVencHasta]
+  );
+  useEffect(
+    () => setPageVencimientosDia(1),
+    [tab2Data.vencimientos, fechaDiaInscVencDesde, fechaDiaInscVencHasta]
+  );
   useEffect(() => setPageAsistenciasUsuario(1), [asistenciaUsuarioResult.asistencias]);
   useEffect(() => setPageAsistenciasUsuario(1), [fechaBusquedaUsuario]);
   useEffect(() => setPageInscripcionesUsuario(1), [inscripcionesUsuarioResult.inscripciones]);
   useEffect(() => setPageInscripcionesUsuario(1), [fechaBusquedaUsuarioIns]);
   useEffect(() => setPageVencimientosProximos(1), [tab3Data.vencimientos_proximos_7_dias]);
   useEffect(() => {
+    setFechaInicio(hoyISO);
+    setFechaFin(hoyISO);
+    setFechaDiaAsisRegDesde(hoyISO);
+    setFechaDiaAsisRegHasta("");
+    setFechaDiaInscVencDesde(hoyISO);
+    setFechaDiaInscVencHasta("");
+
     if (activeTab !== "tab1") {
       setShowBusquedaModal(false);
     }
     if (activeTab !== "tab2") {
       setShowBusquedaModalIns(false);
     }
-  }, [activeTab]);
+  }, [activeTab, hoyISO]);
 
   const aplicarPreset = (presetKey) => {
     const range = getPresetRange(presetKey);
@@ -364,7 +490,10 @@ function Home() {
     try {
       setLoadingUsuario(true);
       setUsuarioError("");
-      const data = await fetchResumen({ dia: fechaBusquedaUsuario || fechaDiaAsisReg || hoyISO, usuarioId: userId });
+      const data = await fetchResumen({
+        dia: fechaBusquedaUsuario || tab1Range.end || hoyISO,
+        usuarioId: userId,
+      });
       if (!data || reqId !== searchAsistenciaReqRef.current) return;
 
       setAsistenciaUsuarioResult({
@@ -420,7 +549,10 @@ function Home() {
     try {
       setLoadingUsuarioIns(true);
       setUsuarioInsError("");
-      const data = await fetchResumen({ dia: fechaBusquedaUsuarioIns || fechaDiaInscVenc || hoyISO, usuarioId: userId });
+      const data = await fetchResumen({
+        dia: fechaBusquedaUsuarioIns || tab2Range.end || hoyISO,
+        usuarioId: userId,
+      });
       if (!data || reqId !== searchInscripcionesReqRef.current) return;
 
       setInscripcionesUsuarioResult({
@@ -492,6 +624,10 @@ function Home() {
       ? { padding: "16px" }
       : {}),
   };
+  const tab1Label = getRangeLabel(tab1Range.start, tab1Range.end);
+  const tab2Label = getRangeLabel(tab2Range.start, tab2Range.end);
+  const tab1EsRango = tab1Range.start !== tab1Range.end;
+  const tab2EsRango = tab2Range.start !== tab2Range.end;
 
   return (
     <>
@@ -517,8 +653,22 @@ function Home() {
               <div style={styles.filterBox}>
                 <div style={styles.filterFrame}>
                   <span style={styles.frameTitle}>Filtro para listas</span>
-                  <Field label="Dia seleccionado">
-                    <input type="date" value={fechaDiaAsisReg} onChange={(e) => setFechaDiaAsisReg(e.target.value)} style={styles.input} />
+                  <Field label="Desde">
+                    <input
+                      type="date"
+                      value={fechaDiaAsisRegDesde}
+                      onChange={(e) => setFechaDiaAsisRegDesde(e.target.value)}
+                      style={styles.input}
+                    />
+                  </Field>
+                  <Field label="Hasta (opcional)">
+                    <input
+                      type="date"
+                      value={fechaDiaAsisRegHasta}
+                      onChange={(e) => setFechaDiaAsisRegHasta(e.target.value)}
+                      min={fechaDiaAsisRegDesde || undefined}
+                      style={styles.input}
+                    />
                   </Field>
                 </div>
 
@@ -551,33 +701,41 @@ function Home() {
                 </div>
               </div>
 
-              {loadingTab1 && <p style={styles.info}>Cargando datos del dia...</p>}
+              {loadingTab1 && <p style={styles.info}>Cargando datos...</p>}
               {!loadingTab1 && errorTab1 && <p style={styles.error}>{errorTab1}</p>}
 
               {!loadingTab1 && !errorTab1 && (
                 <>
                   <div style={styles.grid2}>
-                    <StatCard title={`Asistencias (${formatDate(fechaDiaAsisReg)})`} value={tab1Data.totales.asistencias} />
-                    <StatCard title={`Registros (${formatDate(fechaDiaAsisReg)})`} value={tab1Data.totales.registros} />
+                    <StatCard title={`Asistencias (${tab1Label})`} value={tab1Data.totales.asistencias} />
+                    <StatCard title={`Registros (${tab1Label})`} value={tab1Data.totales.registros} />
                   </div>
 
                   <div style={styles.grid2}>
-                    <Panel title="Lista de asistencias del dia">
+                    <Panel title={`Lista de asistencias (${tab1Label})`}>
                       <PagedTable
                         headers={["ID", "Nombre", "Hora"]}
                         rows={tab1Data.asistencias.map((x) => [x.usuario_id, `${x.nombre || ""} ${x.apellido || ""}`.trim(), x.hora_am_pm || "-"])}
                         page={pageAsistenciasDia}
                         setPage={setPageAsistenciasDia}
-                        emptyLabel="No hubo asistencias este dia."
+                        emptyLabel={
+                          tab1EsRango
+                            ? "No hubo asistencias en el rango seleccionado."
+                            : "No hubo asistencias este dia."
+                        }
                       />
                     </Panel>
-                    <Panel title="Lista de registros del dia">
+                    <Panel title={`Lista de registros (${tab1Label})`}>
                       <PagedTable
                         headers={["ID", "Nombre", "Hora de registro"]}
                         rows={tab1Data.registros.map((x) => [x.usuario_id, `${x.nombre || ""} ${x.apellido || ""}`.trim(), x.hora_registro_am_pm || "-"])}
                         page={pageRegistrosDia}
                         setPage={setPageRegistrosDia}
-                        emptyLabel="No hubo registros este dia."
+                        emptyLabel={
+                          tab1EsRango
+                            ? "No hubo registros en el rango seleccionado."
+                            : "No hubo registros este dia."
+                        }
                       />
                     </Panel>
                   </div>
@@ -645,8 +803,22 @@ function Home() {
               <div style={styles.filterBox}>
                 <div style={styles.filterFrame}>
                   <span style={styles.frameTitle}>Filtro para listas</span>
-                  <Field label="Dia seleccionado">
-                    <input type="date" value={fechaDiaInscVenc} onChange={(e) => setFechaDiaInscVenc(e.target.value)} style={styles.input} />
+                  <Field label="Desde">
+                    <input
+                      type="date"
+                      value={fechaDiaInscVencDesde}
+                      onChange={(e) => setFechaDiaInscVencDesde(e.target.value)}
+                      style={styles.input}
+                    />
+                  </Field>
+                  <Field label="Hasta (opcional)">
+                    <input
+                      type="date"
+                      value={fechaDiaInscVencHasta}
+                      onChange={(e) => setFechaDiaInscVencHasta(e.target.value)}
+                      min={fechaDiaInscVencDesde || undefined}
+                      style={styles.input}
+                    />
                   </Field>
                 </div>
 
@@ -679,18 +851,18 @@ function Home() {
                 </div>
               </div>
 
-              {loadingTab2 && <p style={styles.info}>Cargando datos del dia...</p>}
+              {loadingTab2 && <p style={styles.info}>Cargando datos...</p>}
               {!loadingTab2 && errorTab2 && <p style={styles.error}>{errorTab2}</p>}
 
               {!loadingTab2 && !errorTab2 && (
                 <>
                   <div style={styles.grid2}>
-                    <StatCard title={`Inscripciones (${formatDate(fechaDiaInscVenc)})`} value={tab2Data.totales.inscripciones} />
-                    <StatCard title={`Vencimientos (${formatDate(fechaDiaInscVenc)})`} value={tab2Data.totales.vencimientos} />
+                    <StatCard title={`Inscripciones (${tab2Label})`} value={tab2Data.totales.inscripciones} />
+                    <StatCard title={`Vencimientos (${tab2Label})`} value={tab2Data.totales.vencimientos} />
                   </div>
 
                   <div style={styles.grid2}>
-                    <Panel title="Lista de inscripciones del dia">
+                    <Panel title={`Lista de inscripciones (${tab2Label})`}>
                       <PagedTable
                         headers={["ID", "Nombre", "Membresia", "Inicio", "Fin"]}
                         rows={tab2Data.inscripciones.map((x) => [
@@ -702,10 +874,14 @@ function Home() {
                         ])}
                         page={pageInscripcionesDia}
                         setPage={setPageInscripcionesDia}
-                        emptyLabel="No hubo inscripciones este dia."
+                        emptyLabel={
+                          tab2EsRango
+                            ? "No hubo inscripciones en el rango seleccionado."
+                            : "No hubo inscripciones este dia."
+                        }
                       />
                     </Panel>
-                    <Panel title="Lista de vencimientos del dia">
+                    <Panel title={`Lista de vencimientos (${tab2Label})`}>
                       <PagedTable
                         headers={["ID", "Nombre", "Membresia", "Inicio", "Fin"]}
                         rows={tab2Data.vencimientos.map((x) => [
@@ -717,7 +893,11 @@ function Home() {
                         ])}
                         page={pageVencimientosDia}
                         setPage={setPageVencimientosDia}
-                        emptyLabel="No hubo vencimientos este dia."
+                        emptyLabel={
+                          tab2EsRango
+                            ? "No hubo vencimientos en el rango seleccionado."
+                            : "No hubo vencimientos este dia."
+                        }
                       />
                     </Panel>
                   </div>
@@ -804,9 +984,14 @@ function Home() {
                       type="date"
                       value={fechaInicio}
                       onChange={(e) => {
+                        const nuevaInicio = e.target.value;
                         setPreset("custom");
-                        setFechaInicio(e.target.value);
+                        setFechaInicio(nuevaInicio);
+                        setFechaFin((prev) =>
+                          prev && nuevaInicio && prev < nuevaInicio ? nuevaInicio : prev
+                        );
                       }}
+                      max={fechaFin || undefined}
                       style={styles.input}
                     />
                   </Field>
@@ -816,9 +1001,15 @@ function Home() {
                       type="date"
                       value={fechaFin}
                       onChange={(e) => {
+                        const nuevaFin = e.target.value;
                         setPreset("custom");
-                        setFechaFin(e.target.value);
+                        setFechaFin(
+                          fechaInicio && nuevaFin && nuevaFin < fechaInicio
+                            ? fechaInicio
+                            : nuevaFin
+                        );
                       }}
+                      min={fechaInicio || undefined}
                       style={styles.input}
                     />
                   </Field>
