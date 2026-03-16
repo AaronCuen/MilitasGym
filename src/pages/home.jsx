@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { clearSession, getStoredUser, markSessionExpired } from "../utils/storage";
+import {
+  clearSession,
+  getActiveSucursalId,
+  getStoredUser,
+  markSessionExpired,
+  onSucursalChange,
+} from "../utils/storage";
 
 const PAGE_SIZE = 20;
 const SEARCH_PAGE_SIZE = 10;
@@ -159,6 +165,7 @@ function Home() {
     usuario: null,
     inscripciones: [],
   });
+  const [sucursalVersion, setSucursalVersion] = useState(0);
 
   const [pageAsistenciasDia, setPageAsistenciasDia] = useState(1);
   const [pageRegistrosDia, setPageRegistrosDia] = useState(1);
@@ -178,6 +185,13 @@ function Home() {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setSucursalVersion((prev) => prev + 1);
+    });
+    return unsubscribe;
   }, []);
 
   const rangoValido = useMemo(() => {
@@ -212,6 +226,11 @@ function Home() {
 
     if (usuarioId !== null) {
       params.set("usuario_id", String(usuarioId));
+    }
+
+    const activeSucursalId = user?.rol === "admin" ? getActiveSucursalId() : null;
+    if (activeSucursalId) {
+      params.set("sucursal_id", String(activeSucursalId));
     }
 
     const res = await fetch(`${API_BASE_URL}/dashboard/resumen?${params.toString()}`, {
@@ -415,15 +434,15 @@ function Home() {
 
   useEffect(() => {
     if (activeTab === "tab1") loadTab1();
-  }, [activeTab, fechaDiaAsisRegDesde, fechaDiaAsisRegHasta, fechaInicio, fechaFin]);
+  }, [activeTab, fechaDiaAsisRegDesde, fechaDiaAsisRegHasta, fechaInicio, fechaFin, sucursalVersion]);
 
   useEffect(() => {
     if (activeTab === "tab2") loadTab2();
-  }, [activeTab, fechaDiaInscVencDesde, fechaDiaInscVencHasta, fechaInicio, fechaFin]);
+  }, [activeTab, fechaDiaInscVencDesde, fechaDiaInscVencHasta, fechaInicio, fechaFin, sucursalVersion]);
 
   useEffect(() => {
     if (activeTab === "tab3") loadTab3();
-  }, [activeTab, fechaInicio, fechaFin]);
+  }, [activeTab, fechaInicio, fechaFin, sucursalVersion]);
 
   useEffect(
     () => setPageAsistenciasDia(1),

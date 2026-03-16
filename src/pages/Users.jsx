@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import { getStoredUser } from "../utils/storage";
+import { getActiveSucursalId, getStoredUser, onSucursalChange } from "../utils/storage";
 
 const INITIAL_FILTROS = {
   id: "",
@@ -71,6 +71,7 @@ function Users() {
   const [fechaFinManual, setFechaFinManual] = useState("");
   const [modoManual, setModoManual] = useState(false);
   const [filtrosResetKey, setFiltrosResetKey] = useState(0);
+  const [sucursalVersion, setSucursalVersion] = useState(0);
 
 
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
@@ -84,6 +85,13 @@ function Users() {
   const user = getStoredUser();
   const isAdmin = user?.rol === "admin";
 
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setSucursalVersion((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, []);
+
   const authHeaders = useCallback(() => {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No token");
@@ -94,14 +102,36 @@ function Users() {
 
   const withAuth = useCallback(() => ({ headers: authHeaders() }), [authHeaders]);
 
+  const buildSucursalParams = useCallback(() => {
+    if (!isAdmin) return {};
+    const activeSucursalId = getActiveSucursalId();
+    if (!activeSucursalId) return {};
+    return { sucursal_id: activeSucursalId };
+  }, [isAdmin, sucursalVersion]);
+
+  const withAuthAndSucursal = useCallback(
+    (params = null) => {
+      const sucursalParams = buildSucursalParams();
+      const merged = {
+        ...withAuth(),
+      };
+      const hasParams = (params && Object.keys(params).length) || Object.keys(sucursalParams).length;
+      if (hasParams) {
+        merged.params = { ...(params || {}), ...sucursalParams };
+      }
+      return merged;
+    },
+    [buildSucursalParams, withAuth]
+  );
+
   const cargarUsuarios = useCallback(async () => {
     const res = await axios.get(
       `${API_BASE_URL}/usuarios-con-membresia`,
-      withAuth()
+      withAuthAndSucursal()
     );
     setUsuarios(normalizarEstadoUsuarios(res.data));
     setPaginaActual(1);
-  }, [withAuth]);
+  }, [withAuthAndSucursal]);
 
   const onButtonHoverIn = (e) => {
     e.currentTarget.style.opacity = "0.85";
@@ -243,8 +273,7 @@ const confirmarRenovacion = async (membresia_id) => {
       const res = await axios.get(
         `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
         {
-          params: paramsConsulta,
-          ...withAuth(),
+          ...withAuthAndSucursal(paramsConsulta),
         }
       );
 
@@ -300,10 +329,10 @@ const confirmarRenovacion = async (membresia_id) => {
 };
   const verUsuario = async (id) => {
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/usuarios/${id}`,
-        withAuth()
-      );
+    const res = await axios.get(
+      `${API_BASE_URL}/usuarios/${id}`,
+      withAuthAndSucursal()
+    );
       setUsuarioSeleccionado(res.data);
       setMostrarModalFoto(false);
       setMostrarModal(true);
@@ -315,8 +344,8 @@ const confirmarRenovacion = async (membresia_id) => {
   const abrirModalEditar = async (usuario) => {
     try {
       const [resUsuario, resInscripcion] = await Promise.all([
-        axios.get(`${API_BASE_URL}/usuarios/${usuario.id}`, withAuth()),
-        axios.get(`${API_BASE_URL}/inscripcion/${usuario.id}`, withAuth()).catch(() => null),
+        axios.get(`${API_BASE_URL}/usuarios/${usuario.id}`, withAuthAndSucursal()),
+        axios.get(`${API_BASE_URL}/inscripcion/${usuario.id}`, withAuthAndSucursal()).catch(() => null),
       ]);
 
       const inscripcion = resInscripcion?.data || null;
@@ -452,8 +481,7 @@ const confirmarRenovacion = async (membresia_id) => {
       const res = await axios.get(
         `${API_BASE_URL}/usuarios/filtrar-con-membresia`,
         {
-          params: paramsConsulta,
-          ...withAuth(),
+          ...withAuthAndSucursal(paramsConsulta),
         }
       );
 

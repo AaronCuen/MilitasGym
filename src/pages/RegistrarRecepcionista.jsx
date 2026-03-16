@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import { getStoredUser } from "../utils/storage";
+import { getActiveSucursalId, getStoredUser, onSucursalChange } from "../utils/storage";
 
 function RegistrarRecepcionista() {
   const navigate = useNavigate();
@@ -24,10 +24,21 @@ function RegistrarRecepcionista() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setForm((prev) => ({
+        ...prev,
+        sucursal_id: String(getActiveSucursalId() || ""),
+      }));
+    });
+    return unsubscribe;
+  }, []);
+
   const [form, setForm] = useState({
     nombre: "",
     usuario: "",
     password: "",
+    sucursal_id: String(getActiveSucursalId() || ""),
   });
 
   const [mensaje, setMensaje] = useState("");
@@ -50,6 +61,12 @@ function RegistrarRecepcionista() {
 
     if (name === "password") {
       setForm({ ...form, password: value.slice(0, 16) });
+      return;
+    }
+
+    if (name === "sucursal_id") {
+      const soloNumeros = value.replace(/\D/g, "").slice(0, 10);
+      setForm({ ...form, sucursal_id: soloNumeros });
       return;
     }
 
@@ -77,6 +94,12 @@ function RegistrarRecepcionista() {
       return;
     }
 
+    const sucursalId = form.sucursal_id.trim();
+    if (!sucursalId || !/^\d+$/.test(sucursalId)) {
+      setMensaje("El id de sucursal es obligatorio");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -86,6 +109,7 @@ function RegistrarRecepcionista() {
           nombre,
           usuario,
           password,
+          sucursal_id: Number(sucursalId),
         },
         {
           headers: {
@@ -95,7 +119,12 @@ function RegistrarRecepcionista() {
       );
 
       setMensaje("Recepcionista registrada correctamente");
-      setForm({ nombre: "", usuario: "", password: "" });
+      setForm({
+        nombre: "",
+        usuario: "",
+        password: "",
+        sucursal_id: String(getActiveSucursalId() || ""),
+      });
     } catch (err) {
       setMensaje(err.response?.data?.message || "Error al registrar");
     }
@@ -143,6 +172,7 @@ function RegistrarRecepcionista() {
           <form onSubmit={handleSubmit} style={styles.form}>
             <input type="text" name="nombre" placeholder="Nombre completo" value={form.nombre} onChange={handleChange} required maxLength={60} style={inputStyle} />
             <input type="text" name="usuario" placeholder="Usuario" value={form.usuario} onChange={handleChange} required maxLength={30} style={inputStyle} />
+            <input type="text" name="sucursal_id" placeholder="ID de sucursal" value={form.sucursal_id} onChange={handleChange} required inputMode="numeric" style={inputStyle} />
 
             <div style={styles.passwordWrapper}>
               <input

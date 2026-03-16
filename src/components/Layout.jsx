@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { clearSession, getStoredUser, isTokenValid, markSessionExpired } from "../utils/storage";
+import { API_BASE_URL } from "../config/api";
+import {
+  clearActiveSucursalId,
+  clearSession,
+  getActiveSucursalId,
+  getStoredUser,
+  isTokenValid,
+  markSessionExpired,
+  onSucursalChange,
+  setActiveSucursalId,
+} from "../utils/storage";
 
 function Layout() {
   const location = useLocation();
@@ -9,6 +19,11 @@ function Layout() {
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sucursales, setSucursales] = useState([]);
+  const [sucursalError, setSucursalError] = useState("");
+  const [activeSucursalId, setActiveSucursalIdState] = useState(
+    () => String(getActiveSucursalId() || "")
+  );
 
   const user = getStoredUser();
   const rol = user?.rol;
@@ -22,6 +37,57 @@ function Layout() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setActiveSucursalIdState(String(getActiveSucursalId() || ""));
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const loadSucursales = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setSucursalError("");
+      try {
+        const res = await fetch(`${API_BASE_URL}/sucursales`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setSucursalError(data?.message || "No se pudo cargar sucursales");
+          return;
+        }
+
+        const lista = Array.isArray(data) ? data : [];
+        setSucursales(lista);
+
+        if (isAdmin) {
+          const stored = getActiveSucursalId();
+          if (stored && !lista.some((s) => Number(s.id) === Number(stored))) {
+            clearActiveSucursalId();
+            setActiveSucursalIdState("");
+          }
+        } else {
+          const fijo = user?.sucursal_id ? Number(user.sucursal_id) : null;
+          if (fijo) {
+            setActiveSucursalId(fijo);
+            setActiveSucursalIdState(String(fijo));
+          } else {
+            clearActiveSucursalId();
+            setActiveSucursalIdState("");
+          }
+        }
+      } catch {
+        setSucursalError("No se pudo cargar sucursales");
+      }
+    };
+
+    loadSucursales();
+  }, [isAdmin, user?.sucursal_id]);
 
   const handleLogout = useCallback(() => {
     clearSession();
@@ -64,6 +130,15 @@ function Layout() {
       setSidebarOpen(false);
     }
   };
+
+  const sucursalSeleccionada = sucursales.find(
+    (s) => String(s.id) === String(activeSucursalId)
+  );
+  const sucursalLabel = isAdmin
+    ? activeSucursalId
+      ? sucursalSeleccionada?.nombre || `Sucursal ${activeSucursalId}`
+      : "Todas las sucursales"
+    : sucursalSeleccionada?.nombre || (user?.sucursal_id ? `Sucursal ${user.sucursal_id}` : "-");
 
   return (
     <div style={styles.app}>
@@ -118,6 +193,36 @@ function Layout() {
           Militas<span style={{ color: "#a31211" }}>GYM</span>
         </div>
 
+        <div style={styles.sucursalBox}>
+          <div style={styles.sectionLabel}>Sucursal</div>
+          {isAdmin ? (
+            <select
+              value={activeSucursalId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setActiveSucursalIdState(value);
+                if (value) {
+                  setActiveSucursalId(Number(value));
+                } else {
+                  clearActiveSucursalId();
+                }
+              }}
+              style={styles.sucursalSelect}
+            >
+              <option value="">Todas las sucursales</option>
+              {sucursales.map((sucursal) => (
+                <option key={sucursal.id} value={sucursal.id}>
+                  {sucursal.nombre}
+                  {sucursal.activo ? "" : " (inactiva)"}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div style={styles.sucursalValue}>{sucursalLabel}</div>
+          )}
+          {sucursalError && <div style={styles.sucursalError}>{sucursalError}</div>}
+        </div>
+
         <nav style={styles.nav}>
           <Link to="/home" onClick={handleNavClick} style={{ ...styles.link, ...(isActive("/home") && styles.active) }}>
             Pagina principal
@@ -159,6 +264,19 @@ function Layout() {
               }}
             >
               Registrar recepcionista
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              to="/sucursales"
+              onClick={handleNavClick}
+              style={{
+                ...styles.link,
+                ...(isActive("/sucursales") && styles.active),
+              }}
+            >
+              Gestion de sucursales
             </Link>
           )}
         </nav>
@@ -212,6 +330,31 @@ const styles = {
     fontWeight: "600",
     borderBottom: "1px solid #1f2937",
     color: "#ffffff",
+  },
+  sucursalBox: {
+    padding: "12px 16px 6px",
+    borderBottom: "1px solid #1f2937",
+  },
+  sucursalSelect: {
+    width: "100%",
+    marginTop: "8px",
+    padding: "8px",
+    borderRadius: "6px",
+    backgroundColor: "#0f172a",
+    color: "#e5e7eb",
+    border: "1px solid #1f2937",
+    fontSize: "13px",
+  },
+  sucursalValue: {
+    marginTop: "8px",
+    fontSize: "13px",
+    color: "#f9fafb",
+    fontWeight: "500",
+  },
+  sucursalError: {
+    marginTop: "8px",
+    fontSize: "12px",
+    color: "#f87171",
   },
 
   nav: {

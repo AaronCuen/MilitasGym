@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { clearSession, getStoredUser, markSessionExpired } from "../utils/storage";
+import {
+  clearSession,
+  getActiveSucursalId,
+  getStoredUser,
+  markSessionExpired,
+  onSucursalChange,
+} from "../utils/storage";
 
 function BuscarUsuario() {
   const navigate = useNavigate();
@@ -54,6 +60,16 @@ function BuscarUsuario() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setUsuario(null);
+      setMensaje("");
+      setEstadoMembresia("SIN MEMBRESIA");
+      setFechaVencimiento("");
+    });
+    return unsubscribe;
+  }, []);
+
   const buscarUsuario = async () => {
     if (!id) {
       setMensaje("Ingresa un ID");
@@ -70,7 +86,16 @@ function BuscarUsuario() {
         return;
       }
 
-      const res = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+      const params = new URLSearchParams();
+      if (user?.rol === "admin") {
+        const activeSucursalId = getActiveSucursalId();
+        if (activeSucursalId) {
+          params.set("sucursal_id", String(activeSucursalId));
+        }
+      }
+      const query = params.toString();
+
+      const res = await fetch(`${API_BASE_URL}/usuarios/${id}${query ? `?${query}` : ""}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -90,7 +115,7 @@ function BuscarUsuario() {
 
       setUsuario(data);
 
-      const insRes = await fetch(`${API_BASE_URL}/inscripcion/${id}`, {
+      const insRes = await fetch(`${API_BASE_URL}/inscripcion/${id}${query ? `?${query}` : ""}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

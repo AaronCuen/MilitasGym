@@ -1,13 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../config/api";
-import { clearSession, getStoredUser, markSessionExpired } from "../utils/storage";
+import {
+  clearSession,
+  getActiveSucursalId,
+  getStoredUser,
+  markSessionExpired,
+  onSucursalChange,
+} from "../utils/storage";
 
 function RegisterUser() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const user = getStoredUser();
+  const rol = localStorage.getItem("rol");
+  const isAdmin = rol === "admin";
   const [imagen, setImagen] = useState(null);
+  const [sucursalId, setSucursalId] = useState(() =>
+    String(getActiveSucursalId() || "")
+  );
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
@@ -44,6 +55,14 @@ function RegisterUser() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubscribe = onSucursalChange(() => {
+      setSucursalId(String(getActiveSucursalId() || ""));
+    });
+    return unsubscribe;
+  }, [isAdmin]);
 
   const previewImagen = useMemo(() => {
     if (!imagen) return "";
@@ -123,6 +142,12 @@ function RegisterUser() {
       return;
     }
 
+    const sucursalIdClean = sucursalId.trim();
+    if (isAdmin && (!sucursalIdClean || !/^\d+$/.test(sucursalIdClean))) {
+      setMensaje("El id de sucursal es obligatorio");
+      return;
+    }
+
     let fechaInicioManual = form.fecha_inicio;
     let fechaFinManual = form.fecha_fin;
 
@@ -199,6 +224,9 @@ function RegisterUser() {
         fecha_fin: esManual ? fechaFinManual : form.fecha_fin,
         foto: fotoUrl,
       };
+      if (isAdmin) {
+        bodyData.sucursal_id = Number(sucursalIdClean);
+      }
 
       if (!esManual) {
         delete bodyData.fecha_fin;
@@ -306,6 +334,18 @@ function RegisterUser() {
             <input type="text" name="apellido" placeholder="Apellido" value={form.apellido} onChange={handleChange} required style={inputStyle} />
             <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} maxLength={10} inputMode="numeric" style={inputStyle} />
             <input type="email" name="email" placeholder="Correo" value={form.email} onChange={handleChange} maxLength={40} style={inputStyle} />
+            {isAdmin && (
+              <input
+                type="text"
+                name="sucursal_id"
+                placeholder="ID de sucursal"
+                value={sucursalId}
+                onChange={(e) => setSucursalId(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                required
+                style={inputStyle}
+              />
+            )}
 
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Fecha de nacimiento</label>
