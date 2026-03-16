@@ -1,7 +1,14 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import { getActiveSucursalId, getStoredUser, onSucursalChange } from "../utils/storage";
+import {
+  clearActiveSucursalId,
+  getActiveSucursalId,
+  getStoredUser,
+  onSucursalChange,
+  onSucursalesUpdated,
+  setActiveSucursalId,
+} from "../utils/storage";
 
 const INITIAL_FILTROS = {
   id: "",
@@ -48,6 +55,8 @@ const aplicarFiltroEstadoLocal = (lista = [], estado = "todos") => {
 
 function Users() {
   const [usuarios, setUsuarios] = useState([]);
+  const [sucursales, setSucursales] = useState([]);
+  const [sucursalesLoading, setSucursalesLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const USUARIOS_POR_PAGINA = 50;
   const [paginaActual, setPaginaActual] = useState(1);
@@ -72,6 +81,9 @@ function Users() {
   const [modoManual, setModoManual] = useState(false);
   const [filtrosResetKey, setFiltrosResetKey] = useState(0);
   const [sucursalVersion, setSucursalVersion] = useState(0);
+  const [selectedSucursalId, setSelectedSucursalId] = useState(() =>
+    String(getActiveSucursalId() || "")
+  );
 
 
   const [filtros, setFiltros] = useState(INITIAL_FILTROS);
@@ -86,9 +98,11 @@ function Users() {
   const isAdmin = user?.rol === "admin";
 
   useEffect(() => {
-    const unsubscribe = onSucursalChange(() => {
+    const handleChange = () => {
       setSucursalVersion((prev) => prev + 1);
-    });
+      setSelectedSucursalId(String(getActiveSucursalId() || ""));
+    };
+    const unsubscribe = onSucursalChange(handleChange);
     return unsubscribe;
   }, []);
 
@@ -101,6 +115,37 @@ function Users() {
   }, []);
 
   const withAuth = useCallback(() => ({ headers: authHeaders() }), [authHeaders]);
+
+  const cargarSucursales = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      setSucursalesLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/sucursales`, withAuth());
+      const lista = Array.isArray(res.data) ? res.data : [];
+      setSucursales(lista);
+      const active = getActiveSucursalId();
+      if (active && !lista.some((s) => Number(s.id) === Number(active))) {
+        clearActiveSucursalId();
+        setSelectedSucursalId("");
+      }
+    } catch (error) {
+      console.log(error.response?.data || error.message);
+    } finally {
+      setSucursalesLoading(false);
+    }
+  }, [isAdmin, withAuth]);
+
+  useEffect(() => {
+    cargarSucursales();
+  }, [cargarSucursales]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubscribe = onSucursalesUpdated(() => {
+      cargarSucursales();
+    });
+    return unsubscribe;
+  }, [isAdmin, cargarSucursales]);
 
   const buildSucursalParams = useCallback(() => {
     if (!isAdmin) return {};
@@ -167,6 +212,16 @@ function Users() {
       ...prev,
       [campo]: value,
     }));
+  };
+
+  const handleSucursalFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedSucursalId(value);
+    if (value) {
+      setActiveSucursalId(Number(value));
+    } else {
+      clearActiveSucursalId();
+    }
   };
 
   const formatearFecha = (fecha, usarSplit = false) => {
@@ -589,6 +644,16 @@ const confirmarRenovacion = async (membresia_id) => {
     flex: isMobile ? "1 1 100%" : "0 0 150px",
     maxWidth: isMobile ? "100%" : "150px",
   };
+  const filterSelectStyle = {
+    ...styles.InputFilters,
+    boxSizing: "border-box",
+    width: "100%",
+    minWidth: 0,
+    height: "42px",
+    padding: "10px 12px",
+    flex: isMobile ? "1 1 100%" : "0 0 200px",
+    maxWidth: isMobile ? "100%" : "200px",
+  };
   const filterDateInputStyle = {
     ...styles.InputFilters,
     boxSizing: "border-box",
@@ -750,6 +815,25 @@ const confirmarRenovacion = async (membresia_id) => {
                 onChange={actualizarFiltro("nombre")}
               />
 
+              {isAdmin && (
+                <select
+                  style={filterSelectStyle}
+                  value={selectedSucursalId}
+                  onChange={handleSucursalFilterChange}
+                  disabled={sucursalesLoading}
+                >
+                  <option value="">
+                    {sucursalesLoading ? "Cargando sucursales..." : "Todas las sucursales"}
+                  </option>
+                  {sucursales.map((sucursal) => (
+                    <option key={sucursal.id} value={sucursal.id}>
+                      {sucursal.nombre}
+                      {sucursal.activo ? "" : " (inactiva)"}
+                    </option>
+                  ))}
+                </select>
+              )}
+
               <div style={dateGroupStyle}>
                 <label style={styles.dateLabel}>Fecha de registro</label>
                 <input
@@ -824,7 +908,7 @@ const confirmarRenovacion = async (membresia_id) => {
                   <th style={thStyle}>ID</th>
                   <th style={thStyle}>Nombre</th>
                   <th style={thStyle}>Apellido</th>
-                  <th style={thStyle}>TelÃ©fono</th>
+                  <th style={thStyle}>Telefono</th>
                   <th style={thStyle}>Email</th>
                   <th style={thStyle}>Estado</th>
                   <th style={thStyle}>Vence</th>
@@ -898,7 +982,8 @@ const confirmarRenovacion = async (membresia_id) => {
                     </td>
                   </tr>
                 ))}
-              </tbody>`r`n            </table>
+              </tbody>
+            </table>
            </div>
 
            {totalPaginas > 1 && (
@@ -1249,7 +1334,7 @@ const confirmarRenovacion = async (membresia_id) => {
         </div>
 
         <div style={styles.editField}>
-          <label style={styles.editLabel}>TelÃ©fono</label>
+          <label style={styles.editLabel}>Telefono</label>
           <input
             type="tel"
             value={usuarioEditando.telefono || ""}

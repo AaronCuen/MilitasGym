@@ -20,6 +20,7 @@ function BuscarUsuario() {
   const [mensaje, setMensaje] = useState("");
   const [estadoMembresia, setEstadoMembresia] = useState("SIN MEMBRESIA");
   const [fechaVencimiento, setFechaVencimiento] = useState("");
+  const [buscando, setBuscando] = useState(false);
   const user = getStoredUser();
 
   const normalizarFechaInput = (fecha) => {
@@ -71,6 +72,7 @@ function BuscarUsuario() {
   }, []);
 
   const buscarUsuario = async () => {
+    if (buscando) return;
     if (!id) {
       setMensaje("Ingresa un ID");
       setUsuario(null);
@@ -79,6 +81,7 @@ function BuscarUsuario() {
       return;
     }
 
+    setBuscando(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -164,6 +167,8 @@ function BuscarUsuario() {
       setUsuario(null);
       setEstadoMembresia("SIN MEMBRESIA");
       setFechaVencimiento("");
+    } finally {
+      setBuscando(false);
     }
   };
 
@@ -251,8 +256,8 @@ function BuscarUsuario() {
               onBlur={(e) => (e.target.style.borderColor = "#d1d5db")}
             />
 
-            <button type="submit" style={styles.button}>
-              Buscar
+            <button type="submit" style={styles.button} disabled={buscando}>
+              {buscando ? "Buscando..." : "Buscar"}
             </button>
           </form>
 

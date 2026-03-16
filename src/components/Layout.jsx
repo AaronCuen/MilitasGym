@@ -9,6 +9,7 @@ import {
   isTokenValid,
   markSessionExpired,
   onSucursalChange,
+  onSucursalesUpdated,
   setActiveSucursalId,
 } from "../utils/storage";
 
@@ -45,49 +46,56 @@ function Layout() {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    const loadSucursales = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-      setSucursalError("");
-      try {
-        const res = await fetch(`${API_BASE_URL}/sucursales`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setSucursalError(data?.message || "No se pudo cargar sucursales");
-          return;
-        }
-
-        const lista = Array.isArray(data) ? data : [];
-        setSucursales(lista);
-
-        if (isAdmin) {
-          const stored = getActiveSucursalId();
-          if (stored && !lista.some((s) => Number(s.id) === Number(stored))) {
-            clearActiveSucursalId();
-            setActiveSucursalIdState("");
-          }
-        } else {
-          const fijo = user?.sucursal_id ? Number(user.sucursal_id) : null;
-          if (fijo) {
-            setActiveSucursalId(fijo);
-            setActiveSucursalIdState(String(fijo));
-          } else {
-            clearActiveSucursalId();
-            setActiveSucursalIdState("");
-          }
-        }
-      } catch {
-        setSucursalError("No se pudo cargar sucursales");
+  const loadSucursales = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    setSucursalError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/sucursales`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSucursalError(data?.message || "No se pudo cargar sucursales");
+        return;
       }
-    };
 
-    loadSucursales();
+      const lista = Array.isArray(data) ? data : [];
+      setSucursales(lista);
+
+      if (isAdmin) {
+        const stored = getActiveSucursalId();
+        if (stored && !lista.some((s) => Number(s.id) === Number(stored))) {
+          clearActiveSucursalId();
+          setActiveSucursalIdState("");
+        }
+      } else {
+        const fijo = user?.sucursal_id ? Number(user.sucursal_id) : null;
+        if (fijo) {
+          setActiveSucursalId(fijo);
+          setActiveSucursalIdState(String(fijo));
+        } else {
+          clearActiveSucursalId();
+          setActiveSucursalIdState("");
+        }
+      }
+    } catch {
+      setSucursalError("No se pudo cargar sucursales");
+    }
   }, [isAdmin, user?.sucursal_id]);
+
+  useEffect(() => {
+    loadSucursales();
+  }, [loadSucursales]);
+
+  useEffect(() => {
+    const unsubscribe = onSucursalesUpdated(() => {
+      loadSucursales();
+    });
+    return unsubscribe;
+  }, [loadSucursales]);
 
   const handleLogout = useCallback(() => {
     clearSession();

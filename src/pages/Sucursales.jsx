@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import { getStoredUser, markSessionExpired, clearSession } from "../utils/storage";
+import {
+  getStoredUser,
+  markSessionExpired,
+  clearSession,
+  notifySucursalesUpdated,
+} from "../utils/storage";
 
 function Sucursales() {
   const navigate = useNavigate();
@@ -126,6 +131,7 @@ function Sucursales() {
 
       resetForm();
       await cargarSucursales();
+      notifySucursalesUpdated();
     } catch (err) {
       const status = err.response?.status;
       if (handleUnauthorized(status)) return;
@@ -151,6 +157,7 @@ function Sucursales() {
         { headers: authHeaders() }
       );
       await cargarSucursales();
+      notifySucursalesUpdated();
     } catch (err) {
       const status = err.response?.status;
       if (handleUnauthorized(status)) return;
@@ -266,7 +273,7 @@ function Sucursales() {
                   <div style={styles.rowMain}>
                     <strong>{sucursal.nombre}</strong>
                     <span style={styles.rowMeta}>
-                      {sucursal.direccion || "-"} · {sucursal.telefono || "-"}
+                      {sucursal.direccion || "-"} - {sucursal.telefono || "-"}
                     </span>
                   </div>
                   <div style={styles.rowActions}>

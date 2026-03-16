@@ -19,6 +19,8 @@ function RegisterUser() {
   const [sucursalId, setSucursalId] = useState(() =>
     String(getActiveSucursalId() || "")
   );
+  const [sucursales, setSucursales] = useState([]);
+  const [sucursalError, setSucursalError] = useState("");
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
@@ -63,6 +65,44 @@ function RegisterUser() {
     });
     return unsubscribe;
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const loadSucursales = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      setSucursalError("");
+      try {
+        const res = await fetch(`${API_BASE_URL}/sucursales`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            markSessionExpired();
+            clearSession();
+            navigate("/", { replace: true });
+            return;
+          }
+          setSucursalError(data?.message || "No se pudo cargar sucursales");
+          return;
+        }
+
+        const lista = Array.isArray(data) ? data : [];
+        setSucursales(lista);
+        const active = getActiveSucursalId();
+        if (active && !lista.some((s) => Number(s.id) === Number(active))) {
+          setSucursalId("");
+        }
+      } catch {
+        setSucursalError("No se pudo cargar sucursales");
+      }
+    };
+
+    loadSucursales();
+  }, [isAdmin, navigate]);
 
   const previewImagen = useMemo(() => {
     if (!imagen) return "";
@@ -144,7 +184,7 @@ function RegisterUser() {
 
     const sucursalIdClean = sucursalId.trim();
     if (isAdmin && (!sucursalIdClean || !/^\d+$/.test(sucursalIdClean))) {
-      setMensaje("El id de sucursal es obligatorio");
+      setMensaje("La sucursal es obligatoria");
       return;
     }
 
@@ -335,16 +375,28 @@ function RegisterUser() {
             <input type="tel" name="telefono" placeholder="Telefono" value={form.telefono} onChange={handleChange} maxLength={10} inputMode="numeric" style={inputStyle} />
             <input type="email" name="email" placeholder="Correo" value={form.email} onChange={handleChange} maxLength={40} style={inputStyle} />
             {isAdmin && (
-              <input
-                type="text"
-                name="sucursal_id"
-                placeholder="ID de sucursal"
-                value={sucursalId}
-                onChange={(e) => setSucursalId(e.target.value.replace(/\D/g, ""))}
-                inputMode="numeric"
-                required
-                style={inputStyle}
-              />
+              <>
+                <select
+                  name="sucursal_id"
+                  value={sucursalId}
+                  onChange={(e) => setSucursalId(e.target.value)}
+                  required
+                  style={inputStyle}
+                >
+                  <option value="">
+                    {sucursales.length ? "Selecciona sucursal" : "Cargando sucursales..."}
+                  </option>
+                  {sucursales.map((sucursal) => (
+                    <option key={sucursal.id} value={sucursal.id}>
+                      {sucursal.nombre}
+                      {sucursal.activo ? "" : " (inactiva)"}
+                    </option>
+                  ))}
+                </select>
+                {sucursalError && (
+                  <span style={{ ...styles.message, color: "#b91c1c" }}>{sucursalError}</span>
+                )}
+              </>
             )}
 
             <div style={styles.fieldGroup}>

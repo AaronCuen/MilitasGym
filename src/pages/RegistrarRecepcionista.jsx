@@ -8,6 +8,7 @@ import {
   getStoredUser,
   markSessionExpired,
   onSucursalChange,
+  notifySucursalesUpdated,
 } from "../utils/storage";
 
 function RegistrarRecepcionista() {
@@ -211,6 +212,7 @@ function RegistrarRecepcionista() {
 
       resetForm();
       await cargarRecepcionistas();
+      notifySucursalesUpdated();
     } catch (err) {
       if (handleUnauthorized(err.response?.status)) return;
       setMensaje(err.response?.data?.message || "Error al registrar");
@@ -235,6 +237,7 @@ function RegistrarRecepcionista() {
         headers: authHeaders(),
       });
       setRecepcionistas((prev) => prev.filter((r) => r.id !== id));
+      notifySucursalesUpdated();
     } catch (err) {
       if (handleUnauthorized(err.response?.status)) return;
       setMensaje(err.response?.data?.message || "Error al eliminar");

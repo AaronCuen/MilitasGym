@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 const SESSION_NOTICE_KEY = "session_notice";
 const ACTIVE_SUCURSAL_KEY = "active_sucursal_id";
 const SUCURSAL_CHANGE_EVENT = "active_sucursal_change";
+const SUCURSALES_UPDATED_EVENT = "sucursales_updated";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesion expiro. Inicia sesion nuevamente.";
 
 export const getStoredJSON = (key, fallback = null) => {
@@ -81,4 +82,13 @@ export const clearActiveSucursalId = () => {
 export const onSucursalChange = (handler) => {
   window.addEventListener(SUCURSAL_CHANGE_EVENT, handler);
   return () => window.removeEventListener(SUCURSAL_CHANGE_EVENT, handler);
+};
+
+export const notifySucursalesUpdated = () => {
+  window.dispatchEvent(new Event(SUCURSALES_UPDATED_EVENT));
+};
+
+export const onSucursalesUpdated = (handler) => {
+  window.addEventListener(SUCURSALES_UPDATED_EVENT, handler);
+  return () => window.removeEventListener(SUCURSALES_UPDATED_EVENT, handler);
 };
