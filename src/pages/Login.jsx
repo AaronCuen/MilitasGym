@@ -11,7 +11,6 @@ function Login() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [sucursalId, setSucursalId] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
@@ -59,10 +58,6 @@ function Login() {
       newErrors.password = "Debe tener al menos 6 caracteres";
     }
 
-    if (sucursalId.trim() && !/^\d+$/.test(sucursalId.trim())) {
-      newErrors.sucursalId = "El id de sucursal debe ser numerico";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -76,22 +71,14 @@ function Login() {
     try {
       setLoading(true);
 
-      const payload = {
-        usuario: username,
-        password: password,
-      };
-      const sucursalClean = sucursalId.trim();
-      if (sucursalClean) {
-        payload.sucursal_id = Number(sucursalClean);
-      }
-
       const res = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...payload,
+          usuario: username,
+          password: password,
         }),
       });
 
@@ -183,28 +170,6 @@ function Login() {
             />
             <span style={{ ...styles.error, opacity: errors.username ? 1 : 0 }}>
               {errors.username || " "}
-            </span>
-
-            <h3 style={styles.Subttile}>Sucursal (ID)</h3>
-            <input
-              type="text"
-              placeholder="ID de sucursal (opcional)"
-              value={sucursalId}
-              onChange={(e) => setSucursalId(e.target.value.replace(/\D/g, ""))}
-              onFocus={() => setFocusedField("sucursal")}
-              onBlur={() => setFocusedField(null)}
-              inputMode="numeric"
-              style={{
-                ...inputStyle,
-                borderBottom: errors.sucursalId
-                  ? "2px solid #b00020"
-                  : focusedField === "sucursal"
-                  ? "2px solid #8b0000"
-                  : "1px solid #c7c7c7",
-              }}
-            />
-            <span style={{ ...styles.error, opacity: errors.sucursalId ? 1 : 0 }}>
-              {errors.sucursalId || " "}
             </span>
 
             <h3 style={styles.Subttile}>Contrasena</h3>

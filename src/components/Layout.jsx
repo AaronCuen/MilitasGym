@@ -263,7 +263,7 @@ function Layout() {
                 ...(isActive("/registrar-recepcionista") && styles.active),
               }}
             >
-              Registrar recepcionista
+              Gestion de recepcionistas
             </Link>
           )}
 

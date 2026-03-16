@@ -2,37 +2,23 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
-import { getActiveSucursalId, getStoredUser, onSucursalChange } from "../utils/storage";
+import {
+  clearSession,
+  getActiveSucursalId,
+  getStoredUser,
+  markSessionExpired,
+  onSucursalChange,
+} from "../utils/storage";
 
 function RegistrarRecepcionista() {
   const navigate = useNavigate();
+  const user = getStoredUser();
+  const rol = localStorage.getItem("rol");
+  const isAdmin = rol === "admin";
+
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1200
   );
-
-  const rol = localStorage.getItem("rol");
-
-  useEffect(() => {
-    if (rol !== "admin") {
-      navigate("/usuarios", { replace: true });
-    }
-  }, [navigate, rol]);
-
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onSucursalChange(() => {
-      setForm((prev) => ({
-        ...prev,
-        sucursal_id: String(getActiveSucursalId() || ""),
-      }));
-    });
-    return unsubscribe;
-  }, []);
 
   const [form, setForm] = useState({
     nombre: "",
@@ -41,10 +27,84 @@ function RegistrarRecepcionista() {
     sucursal_id: String(getActiveSucursalId() || ""),
   });
 
+  const [recepcionistas, setRecepcionistas] = useState([]);
+  const [sucursales, setSucursales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const user = getStoredUser();
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate("/usuarios", { replace: true });
+    }
+  }, [isAdmin, navigate]);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const handleUnauthorized = (status) => {
+    if (status !== 401 && status !== 403) return false;
+    markSessionExpired();
+    clearSession();
+    navigate("/", { replace: true });
+    return true;
+  };
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token");
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const cargarSucursales = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/sucursales`, {
+        headers: authHeaders(),
+      });
+      const lista = Array.isArray(res.data) ? res.data : [];
+      setSucursales(lista);
+    } catch (err) {
+      if (handleUnauthorized(err.response?.status)) return;
+      setMensaje(err.response?.data?.message || "No se pudieron cargar sucursales");
+    }
+  };
+
+  const cargarRecepcionistas = async () => {
+    try {
+      setLoading(true);
+      const activeSucursalId = getActiveSucursalId();
+      const res = await axios.get(`${API_BASE_URL}/recepcionistas`, {
+        headers: authHeaders(),
+        params: activeSucursalId ? { sucursal_id: activeSucursalId } : undefined,
+      });
+      setRecepcionistas(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      if (handleUnauthorized(err.response?.status)) return;
+      setMensaje(err.response?.data?.message || "No se pudieron cargar recepcionistas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarSucursales();
+    cargarRecepcionistas();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSucursalChange(() => {
+      setForm((prev) => ({
+        ...prev,
+        sucursal_id: String(getActiveSucursalId() || ""),
+      }));
+      cargarRecepcionistas();
+    });
+    return unsubscribe;
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,13 +124,17 @@ function RegistrarRecepcionista() {
       return;
     }
 
-    if (name === "sucursal_id") {
-      const soloNumeros = value.replace(/\D/g, "").slice(0, 10);
-      setForm({ ...form, sucursal_id: soloNumeros });
-      return;
-    }
-
     setForm({ ...form, [name]: value });
+  };
+
+  const resetForm = () => {
+    setForm({
+      nombre: "",
+      usuario: "",
+      password: "",
+      sucursal_id: String(getActiveSucursalId() || ""),
+    });
+    setEditingId(null);
   };
 
   const handleSubmit = async (e) => {
@@ -78,6 +142,7 @@ function RegistrarRecepcionista() {
     const nombre = form.nombre.trim();
     const usuario = form.usuario.trim();
     const password = form.password;
+    const sucursalId = form.sucursal_id.trim();
 
     if (!nombre) {
       setMensaje("El nombre es obligatorio");
@@ -89,44 +154,90 @@ function RegistrarRecepcionista() {
       return;
     }
 
-    if (password.length < 6) {
-      setMensaje("La contrasena debe tener al menos 6 caracteres");
-      return;
-    }
-
-    const sucursalId = form.sucursal_id.trim();
-    if (!sucursalId || !/^\d+$/.test(sucursalId)) {
-      setMensaje("El id de sucursal es obligatorio");
+    if (!sucursalId) {
+      setMensaje("La sucursal es obligatoria");
       return;
     }
 
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/");
+        return;
+      }
 
-      await axios.post(
-        `${API_BASE_URL}/recepcionistas`,
-        {
+      if (!editingId) {
+        if (password.length < 6) {
+          setMensaje("La contrasena debe tener al menos 6 caracteres");
+          return;
+        }
+
+        await axios.post(
+          `${API_BASE_URL}/recepcionistas`,
+          {
+            nombre,
+            usuario,
+            password,
+            sucursal_id: Number(sucursalId),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setMensaje("Recepcionista registrada correctamente");
+      } else {
+        const payload = {
           nombre,
           usuario,
-          password,
           sucursal_id: Number(sucursalId),
-        },
-        {
+        };
+        if (password) {
+          if (password.length < 6) {
+            setMensaje("La contrasena debe tener al menos 6 caracteres");
+            return;
+          }
+          payload.password = password;
+        }
+
+        await axios.put(`${API_BASE_URL}/recepcionistas/${editingId}`, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
+        });
+        setMensaje("Recepcionista actualizada correctamente");
+      }
 
-      setMensaje("Recepcionista registrada correctamente");
-      setForm({
-        nombre: "",
-        usuario: "",
-        password: "",
-        sucursal_id: String(getActiveSucursalId() || ""),
-      });
+      resetForm();
+      await cargarRecepcionistas();
     } catch (err) {
+      if (handleUnauthorized(err.response?.status)) return;
       setMensaje(err.response?.data?.message || "Error al registrar");
+    }
+  };
+
+  const startEdit = (recep) => {
+    setEditingId(recep.id);
+    setForm({
+      nombre: recep.nombre || "",
+      usuario: recep.usuario || "",
+      password: "",
+      sucursal_id: String(recep.sucursal_id || ""),
+    });
+    setMensaje("");
+  };
+
+  const eliminarRecepcionista = async (id) => {
+    if (!window.confirm("Seguro que deseas eliminar este recepcionista?")) return;
+    try {
+      await axios.delete(`${API_BASE_URL}/recepcionistas/${id}`, {
+        headers: authHeaders(),
+      });
+      setRecepcionistas((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      if (handleUnauthorized(err.response?.status)) return;
+      setMensaje(err.response?.data?.message || "Error al eliminar");
     }
   };
 
@@ -161,28 +272,60 @@ function RegistrarRecepcionista() {
   return (
     <>
       <header style={topbarStyle}>
-        <span style={topTitleStyle}>Registro de recepcionistas</span>
+        <span style={topTitleStyle}>Gestion de recepcionistas</span>
         <div style={avatarStyle}>{user?.nombre ? user.nombre.charAt(0).toUpperCase() : "H"}</div>
       </header>
 
       <main style={contentStyle}>
         <div style={cardStyle}>
-          <h2 style={styles.title}>Registrar recepcionista</h2>
+          <h2 style={styles.title}>{editingId ? "Editar recepcionista" : "Registrar recepcionista"}</h2>
 
           <form onSubmit={handleSubmit} style={styles.form}>
-            <input type="text" name="nombre" placeholder="Nombre completo" value={form.nombre} onChange={handleChange} required maxLength={60} style={inputStyle} />
-            <input type="text" name="usuario" placeholder="Usuario" value={form.usuario} onChange={handleChange} required maxLength={30} style={inputStyle} />
-            <input type="text" name="sucursal_id" placeholder="ID de sucursal" value={form.sucursal_id} onChange={handleChange} required inputMode="numeric" style={inputStyle} />
+            <input
+              type="text"
+              name="nombre"
+              placeholder="Nombre completo"
+              value={form.nombre}
+              onChange={handleChange}
+              required
+              maxLength={60}
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              name="usuario"
+              placeholder="Usuario"
+              value={form.usuario}
+              onChange={handleChange}
+              required
+              maxLength={30}
+              style={inputStyle}
+            />
+            <select
+              name="sucursal_id"
+              value={form.sucursal_id}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+            >
+              <option value="">Selecciona sucursal</option>
+              {sucursales.map((sucursal) => (
+                <option key={sucursal.id} value={sucursal.id}>
+                  {sucursal.nombre}
+                  {sucursal.activo ? "" : " (inactiva)"}
+                </option>
+              ))}
+            </select>
 
             <div style={styles.passwordWrapper}>
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Contrasena"
+                placeholder={editingId ? "Contrasena (opcional)" : "Contrasena"}
                 value={form.password}
                 onChange={handleChange}
-                required
-                minLength={6}
+                required={!editingId}
+                minLength={editingId ? undefined : 6}
                 maxLength={16}
                 style={{ ...inputStyle, paddingRight: "58px" }}
               />
@@ -195,9 +338,16 @@ function RegistrarRecepcionista() {
               </button>
             </div>
 
-            <button type="submit" style={styles.button}>
-              Registrar recepcionista
-            </button>
+            <div style={styles.actionsRow}>
+              <button type="submit" style={styles.button}>
+                {editingId ? "Guardar cambios" : "Registrar recepcionista"}
+              </button>
+              {editingId && (
+                <button type="button" style={styles.secondaryButton} onClick={resetForm}>
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
 
           {mensaje && (
@@ -209,6 +359,36 @@ function RegistrarRecepcionista() {
             >
               {mensaje}
             </p>
+          )}
+        </div>
+
+        <div style={styles.listCard}>
+          <h3 style={styles.subtitle}>Recepcionistas registradas</h3>
+          {loading ? (
+            <p>Cargando recepcionistas...</p>
+          ) : recepcionistas.length === 0 ? (
+            <p>No hay recepcionistas registradas.</p>
+          ) : (
+            <div style={styles.table}>
+              {recepcionistas.map((recep) => (
+                <div key={recep.id} style={styles.row}>
+                  <div style={styles.rowMain}>
+                    <strong>{recep.nombre}</strong>
+                    <span style={styles.rowMeta}>
+                      Usuario: {recep.usuario} - {recep.sucursal_nombre || `Sucursal ${recep.sucursal_id}`}
+                    </span>
+                  </div>
+                  <div style={styles.rowActions}>
+                    <button type="button" style={styles.linkButton} onClick={() => startEdit(recep)}>
+                      Editar
+                    </button>
+                    <button type="button" style={styles.linkButton} onClick={() => eliminarRecepcionista(recep.id)}>
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>
@@ -228,7 +408,6 @@ const styles = {
     boxShadow: "0 10px 30px rgba(0, 0, 0, 0.25)",
     backdropFilter: "blur(2px)",
   },
-
   topTitle: {
     fontSize: "16px",
     fontWeight: "600",
@@ -238,7 +417,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
   },
-
   avatar: {
     width: "34px",
     height: "34px",
@@ -250,59 +428,51 @@ const styles = {
     justifyContent: "center",
     fontWeight: "600",
   },
-
   content: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "calc(100vh - 64px)",
-    backgroundColor: "#f3f4f6",
     padding: "24px",
-  },
-
-  card: {
-    width: "100%",
-    maxWidth: "480px",
-    backgroundColor: "#ffffff",
-    padding: "28px",
-    borderRadius: "14px",
-    boxShadow: "0 -10px 30px rgba(0,0,0,0.25), 0 14px 40px rgba(0,0,0,0.25)",
-  },
-
-  title: {
-    marginBottom: "20px",
-    fontSize: "18px",
-    fontWeight: "600",
-    borderBottom: "2px solid #e5e7eb",
-    paddingBottom: "8px",
-    color: "#000",
-  },
-
-  form: {
     display: "flex",
     flexDirection: "column",
-    gap: "18px",
+    gap: "20px",
   },
-
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "24px",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.08)",
+  },
+  listCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "24px",
+    boxShadow: "0 18px 40px rgba(15, 23, 42, 0.08)",
+  },
+  title: {
+    marginTop: 0,
+    marginBottom: "16px",
+    fontSize: "20px",
+    color: "#0f172a",
+  },
+  subtitle: {
+    marginTop: 0,
+    marginBottom: "12px",
+    fontSize: "18px",
+    color: "#0f172a",
+  },
+  form: {
+    display: "grid",
+    gap: "12px",
+  },
   input: {
-    width: "100%",
     padding: "12px",
-    fontSize: "14px",
     borderRadius: "8px",
     border: "1px solid #d1d5db",
-    backgroundColor: "#f9fafb",
-    color: "#000",
-    outline: "none",
-    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.08)",
+    fontSize: "14px",
   },
-
   passwordWrapper: {
     position: "relative",
     display: "flex",
     alignItems: "center",
   },
-
   passwordToggle: {
     position: "absolute",
     right: "10px",
@@ -314,21 +484,68 @@ const styles = {
     cursor: "pointer",
     padding: 0,
   },
-
-  button: {
-    padding: "14px",
-    borderRadius: "25px",
-    border: "none",
-    background: "linear-gradient(to right, #580c0c, #6e0101)",
-    color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer",
+  actionsRow: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
   },
-
+  button: {
+    padding: "10px 16px",
+    borderRadius: "8px",
+    backgroundColor: "#a31211",
+    color: "#ffffff",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    padding: "10px 16px",
+    borderRadius: "8px",
+    backgroundColor: "#e5e7eb",
+    color: "#111827",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "600",
+  },
   message: {
-    marginTop: "18px",
-    textAlign: "center",
-    fontWeight: "500",
+    marginTop: "12px",
+    fontSize: "14px",
+  },
+  table: {
+    display: "grid",
+    gap: "12px",
+  },
+  row: {
+    padding: "12px",
+    border: "1px solid #e5e7eb",
+    borderRadius: "10px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "12px",
+  },
+  rowMain: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  rowMeta: {
+    fontSize: "13px",
+    color: "#6b7280",
+  },
+  rowActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexWrap: "wrap",
+  },
+  linkButton: {
+    background: "none",
+    border: "none",
+    color: "#a31211",
+    cursor: "pointer",
+    fontWeight: "600",
   },
 };
 
